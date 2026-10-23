@@ -7,9 +7,10 @@ import { Mark } from "@/components/ui/card"
 import { Chip } from "@/components/ui/chip"
 import { LuluMascot } from "@/components/ui/LuluMascot"
 import { Sheet } from "@/components/ui/sheet"
-import { CategoryBadge, Thumb, confidenceLabel } from "@/components/brand"
+import { CategoryBadge, Thumb, categoryIcon, confidenceLabel } from "@/components/brand"
 import { SegmentedPhoto } from "@/components/segmented-photo"
 import { AI_RULE_ID, guide, ruleLabel, suggestionItems } from "@/lib/guide"
+import { binTone, shadeFor, type BinTone } from "@/lib/binColors"
 import { cropThumbnail } from "@/lib/segment"
 import type { Category, MultiPart, Outcome, Rule, RuleSnapshot, ScanAI } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -336,12 +337,6 @@ export function OutcomeView({
 
 // ---------- multi-item ----------
 
-const UNSORTED_COLOR = "#9AA0A6"
-
-export function partColor(p: MultiPart) {
-  return p.outcome.kind === "result" ? p.outcome.category.color : UNSORTED_COLOR
-}
-
 /** Per-item thumbnails cut from the photo, in part order (null until ready or without a box). */
 export function usePartCrops(image: string | null, parts: MultiPart[]) {
   const [crops, setCrops] = useState<(string | null)[]>([])
@@ -357,99 +352,209 @@ export function usePartCrops(image: string | null, parts: MultiPart[]) {
   return crops
 }
 
-interface PartGroup {
+interface ColoredPart {
+  part: MultiPart
+  /** index into parts */
+  index: number
+  categoryId: string | null
+  tone: BinTone
+  /** this item's own shade of its bin colour */
+  color: string
+}
+
+interface BinGroup {
   key: string
   label: string
   bin: string
-  color: string
-  items: { part: MultiPart; n: number }[]
+  tone: BinTone
+  items: ColoredPart[]
 }
 
-function groupParts(parts: MultiPart[]): PartGroup[] {
-  const groups = new Map<string, PartGroup>()
-  parts.forEach((part, i) => {
-    const cat = part.outcome.kind === "result" ? part.outcome.category : null
+function colourParts(parts: MultiPart[]): ColoredPart[] {
+  const seen = new Map<string, number>()
+  return parts.map((part, index) => {
+    const categoryId = part.outcome.kind === "result" ? part.outcome.category.id : null
+    const key = categoryId ?? "unsorted"
+    const k = seen.get(key) ?? 0
+    seen.set(key, k + 1)
+    const tone = binTone(categoryId)
+    return { part, index, categoryId, tone, color: shadeFor(tone.vivid, k) }
+  })
+}
+
+function groupByBin(colored: ColoredPart[]): BinGroup[] {
+  const groups = new Map<string, BinGroup>()
+  for (const cp of colored) {
+    const cat = cp.part.outcome.kind === "result" ? cp.part.outcome.category : null
     const key = cat?.id ?? "unsorted"
     if (!groups.has(key)) {
-      groups.set(key, {
-        key,
-        label: cat?.label ?? "Not sorted",
-        bin: cat?.bin ?? "Check with housekeeping",
-        color: partColor(part),
-        items: [],
-      })
+      groups.set(key, { key, label: cat?.label ?? "Not sorted", bin: cat?.bin ?? "Ask campus housekeeping", tone: cp.tone, items: [] })
     }
-    groups.get(key)!.items.push({ part, n: i + 1 })
-  })
+    groups.get(key)!.items.push(cp)
+  }
   const order = [...guide.categories.map((c) => c.id), "unsorted"]
   return [...groups.values()].sort((a, b) => order.indexOf(a.key) - order.indexOf(b.key))
 }
 
-function NumberDot({ n, color, size = 24 }: { n: number; color: string; size?: number }) {
-  return (
-    <span className="grid shrink-0 place-items-center rounded-full text-xs font-bold text-white" style={{ backgroundColor: color, width: size, height: size }}>
-      {n}
-    </span>
-  )
-}
-
-/** Two or more items in one scan: the photo masked by bin colour, then the items grouped by bin. */
+/** Two or more items in one scan: a summary, the spotlit photo, and the items grouped by bin. */
 export function MultiResultView({ parts, image, compact, actions }: { parts: MultiPart[]; image: string | null; compact?: boolean; actions?: React.ReactNode }) {
+  const [active, setActive] = useState<number | null>(null)
+  const colored = useMemo(() => colourParts(parts), [parts])
+  const groups = useMemo(() => groupByBin(colored), [colored])
   const crops = usePartCrops(image, parts)
-  const groups = useMemo(() => groupParts(parts), [parts])
   const bins = groups.filter((g) => g.key !== "unsorted").length
+  const hasPhoto = !!image && parts.some((p) => p.box)
+
+  const select = (i: number | null, fromPhoto = false) => {
+    setActive(i)
+    if (fromPhoto && i !== null) {
+      requestAnimationFrame(() => document.getElementById(`multi-item-${i}`)?.scrollIntoView({ behavior: "smooth", block: "nearest" }))
+    }
+  }
+
   return (
     <div className="ww-fade-up space-y-4">
-      <div className={cn("glass space-y-4", compact ? "p-4" : "p-5")}>
-        <div>
-          <h2 className={cn("display leading-tight", compact ? "text-xl" : "text-3xl")}>{parts.length} items found</h2>
-          <p className="mt-0.5 text-sm text-sub">
-            Sorted into {bins} {bins === 1 ? "bin" : "bins"}. Each colour is a different bin.
-          </p>
+      <section className={cn("glass", compact ? "space-y-3 p-4" : "space-y-4 p-5")}>
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-bold tracking-[0.14em] text-green uppercase">Mixed waste</p>
+            <h2 className={cn("display leading-tight", compact ? "text-2xl" : "text-[34px]")}>
+              {parts.length} items, {bins} {bins === 1 ? "bin" : "bins"}
+            </h2>
+            <p className="mt-0.5 text-sm text-sub">{hasPhoto ? "Tap an item on the photo or in the list to see where it goes." : "Tap an item to see where it goes."}</p>
+          </div>
+          <span className="hidden shrink-0 overflow-hidden rounded-full bg-mint p-1 sm:grid">
+            <LuluMascot mood="happy" size={compact ? 44 : 56} />
+          </span>
         </div>
-        {image && <SegmentedPhoto src={image} parts={parts.map((p, i) => ({ box: p.box, color: partColor(p), n: i + 1, label: p.ai.item }))} />}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex h-2.5 gap-[3px] overflow-hidden rounded-full" aria-hidden>
           {groups.map((g) => (
-            <span key={g.key} className="tile inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-ink">
-              <span className="h-3 w-3 rounded-full" style={{ backgroundColor: g.color }} />
-              {g.label} · {g.items.length}
-            </span>
+            <span key={g.key} className="h-full rounded-full" style={{ flexGrow: g.items.length, backgroundColor: g.tone.vivid }} />
+          ))}
+        </div>
+        <ul className="flex flex-wrap gap-2" aria-label="Bins in this scan">
+          {groups.map((g) => {
+            const Icon = categoryIcon(g.key)
+            return (
+              <li key={g.key} className="inline-flex items-center gap-1.5 rounded-full py-1 pr-1 pl-2.5 text-xs font-semibold" style={{ backgroundColor: g.tone.soft, color: g.tone.deep }}>
+                <Icon size={14} aria-hidden />
+                {g.label}
+                <span className="grid h-5 min-w-5 place-items-center rounded-full px-1 text-[11px] font-bold text-white" style={{ backgroundColor: g.tone.deep }}>
+                  {g.items.length}
+                </span>
+              </li>
+            )
+          })}
+        </ul>
+      </section>
+
+      <div className={cn("space-y-4", !compact && hasPhoto && "lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:items-start lg:gap-5 lg:space-y-0")}>
+        {hasPhoto && (
+          <div className="lg:sticky lg:top-24">
+            <SegmentedPhoto
+              src={image!}
+              active={active}
+              onSelect={(i) => select(i, true)}
+              parts={colored.map((cp) => ({
+                box: cp.part.box,
+                color: cp.color,
+                tagColor: cp.tone.deep,
+                categoryId: cp.categoryId,
+                n: cp.index + 1,
+                label: cp.part.ai.item,
+              }))}
+            />
+          </div>
+        )}
+        <div className="space-y-3">
+          {groups.map((g) => (
+            <BinGroupCard key={g.key} group={g} crops={crops} active={active} onToggle={(i) => select(active === i ? null : i)} />
           ))}
         </div>
       </div>
-
-      <div className={cn("space-y-4", !compact && "lg:grid lg:grid-cols-2 lg:items-start lg:gap-4 lg:space-y-0")}>
-        {groups.map((g) => (
-          <section key={g.key} className={cn("glass space-y-4 border-l-[6px]", compact ? "p-4" : "p-5")} style={{ borderLeftColor: g.color }}>
-            <header>
-              <h3 className="text-lg font-bold text-ink">{g.label}</h3>
-              <p className="text-sm text-sub">{g.bin}</p>
-            </header>
-            {g.items.map(({ part, n }) => (
-              <div key={n} className="space-y-3 border-t border-green/10 pt-3 first:border-t-0 first:pt-0">
-                <div className="flex items-center gap-3">
-                  <NumberDot n={n} color={g.color} />
-                  <Thumb src={crops[n - 1] ?? null} size={48} className="rounded-[10px]" />
-                  <div className="min-w-0">
-                    <p className="font-semibold capitalize text-ink">{part.ai.item}</p>
-                    {part.ai.material && <p className="text-xs text-sub">{part.ai.material}</p>}
-                  </div>
-                </div>
-                {part.outcome.kind === "result" ? (
-                  <>
-                    <PrepSteps steps={part.outcome.rule.preparation} compact />
-                    <EvidenceBox ruleId={part.outcome.rule.rule_id} sourceText={part.outcome.rule.source_text} compact />
-                  </>
-                ) : (
-                  <p className="tile px-4 py-3 text-sm text-ink">No disposal rule for this one. Ask the campus housekeeping/sustainability team.</p>
-                )}
-              </div>
-            ))}
-          </section>
-        ))}
-      </div>
       {actions && <div className={cn("glass", compact ? "p-4" : "p-5")}>{actions}</div>}
     </div>
+  )
+}
+
+function BinGroupCard({ group, crops, active, onToggle }: { group: BinGroup; crops: (string | null)[]; active: number | null; onToggle: (index: number) => void }) {
+  const Icon = categoryIcon(group.key)
+  const { tone } = group
+  return (
+    <section className="glass overflow-hidden p-0">
+      <header className="flex items-center gap-3 px-4 py-3" style={{ backgroundColor: tone.soft }}>
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-white shadow-soft" style={{ backgroundColor: tone.deep }}>
+          <Icon size={20} aria-hidden />
+        </span>
+        <div className="min-w-0 flex-1">
+          <h3 className="leading-tight font-bold" style={{ color: tone.deep }}>
+            {group.label}
+          </h3>
+          <p className="text-xs text-sub">{group.bin}</p>
+        </div>
+        <span className="text-xs font-semibold" style={{ color: tone.deep }}>
+          {group.items.length} {group.items.length === 1 ? "item" : "items"}
+        </span>
+      </header>
+      <ul>
+        {group.items.map((cp) => (
+          <ItemRow key={cp.index} cp={cp} crop={crops[cp.index] ?? null} open={active === cp.index} onToggle={() => onToggle(cp.index)} />
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+function ItemRow({ cp, crop, open, onToggle }: { cp: ColoredPart; crop: string | null; open: boolean; onToggle: () => void }) {
+  const { part, tone, color } = cp
+  const outcome = part.outcome
+  const ruleId = outcome.kind === "result" ? outcome.rule.rule_id : null
+  return (
+    <li id={`multi-item-${cp.index}`} className="relative scroll-mt-24 border-t border-black/[0.06]">
+      <span aria-hidden className={cn("absolute inset-y-0 left-0 w-1 transition-opacity", open ? "opacity-100" : "opacity-0")} style={{ backgroundColor: color }} />
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-black/[0.025]"
+        style={open ? { backgroundColor: tone.soft + "99" } : undefined}
+      >
+        <span
+          className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white text-xs font-extrabold"
+          style={{ color: tone.deep, boxShadow: `inset 0 0 0 3px ${color}` }}
+        >
+          {cp.index + 1}
+        </span>
+        <span className="shrink-0 rounded-[13px] p-[2px]" style={{ backgroundColor: color }}>
+          <Thumb src={crop} size={48} className="rounded-[11px] bg-white" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate font-semibold capitalize text-ink">{part.ai.item}</span>
+          <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-sub">
+            {part.ai.material && <span className="truncate">{part.ai.material}</span>}
+            {ruleId &&
+              (ruleId === AI_RULE_ID ? (
+                <span className="rounded-full bg-[#FFF4DE] px-2 py-0.5 text-[10px] font-bold text-[#8A5300]">AI-suggested</span>
+              ) : (
+                <span className="rounded-full bg-mint px-2 py-0.5 text-[10px] font-bold text-green">Guide §{ruleId}</span>
+              ))}
+          </span>
+        </span>
+        <ChevronDown size={18} className={cn("shrink-0 text-sub transition-transform", open && "rotate-180")} aria-hidden />
+      </button>
+      {open && (
+        <div className="ww-fade-up space-y-3 px-4 pb-4 sm:pl-[60px]">
+          {outcome.kind === "result" ? (
+            <>
+              <PrepSteps steps={outcome.rule.preparation} compact />
+              <EvidenceBox ruleId={outcome.rule.rule_id} sourceText={outcome.rule.source_text} compact />
+            </>
+          ) : (
+            <p className="tile px-4 py-3 text-sm text-ink">No disposal rule for this one. Ask the campus housekeeping/sustainability team.</p>
+          )}
+        </div>
+      )}
+    </li>
   )
 }
 

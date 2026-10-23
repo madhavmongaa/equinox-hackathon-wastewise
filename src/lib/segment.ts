@@ -3,11 +3,6 @@
 
 import type { Box } from "@/lib/types"
 
-export interface Segment {
-  box: Box
-  color: string
-}
-
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image()
@@ -15,12 +10,6 @@ function loadImage(src: string): Promise<HTMLImageElement> {
     img.onerror = () => reject(new Error("decode"))
     img.src = src
   })
-}
-
-function hexToRgb(hex: string): [number, number, number] {
-  const h = hex.replace("#", "")
-  const n = parseInt(h.length === 3 ? h.replace(/./g, "$&$&") : h, 16)
-  return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
 }
 
 interface PxBox {
@@ -59,6 +48,32 @@ function backgroundSamples(data: Uint8ClampedArray, w: number, h: number, b: PxB
     take(b.x1 - 1 + pad, y)
   }
   return samples
+}
+
+/**
+ * Square dilation (grow) or erosion (shrink) of a 0/1 mask by `r` px. Outside the box
+ * counts as empty when growing and as filled when shrinking, so items touching the
+ * box edge keep their edge.
+ */
+function morph(src: Uint8Array, bw: number, bh: number, r: number, grow: boolean) {
+  const pass = (input: Uint8Array, horizontal: boolean) => {
+    const out = new Uint8Array(input.length)
+    const lines = horizontal ? bh : bw
+    const len = horizontal ? bw : bh
+    const at = (line: number, i: number) => (horizontal ? line * bw + i : i * bw + line)
+    const prefix = new Int32Array(len + 1)
+    for (let line = 0; line < lines; line++) {
+      for (let i = 0; i < len; i++) prefix[i + 1] = prefix[i] + input[at(line, i)]
+      for (let i = 0; i < len; i++) {
+        const a = Math.max(0, i - r)
+        const b = Math.min(len - 1, i + r)
+        const ones = prefix[b + 1] - prefix[a]
+        out[at(line, i)] = grow ? (ones > 0 ? 1 : 0) : ones === b - a + 1 ? 1 : 0
+      }
+    }
+    return out
+  }
+  return pass(pass(src, true), false)
 }
 
 /**
@@ -108,6 +123,11 @@ function maskFor(data: Uint8ClampedArray, w: number, h: number, b: PxBox): Uint8
     }
   }
 
+  // close small gaps (e.g. a white label next to a pale background), so the outline
+  // follows the whole item rather than breaking up around light patches
+  const close = Math.max(2, Math.round(Math.min(bw, bh) * 0.035))
+  mask.set(morph(morph(mask, bw, bh, close, true), bw, bh, close, false))
+
   // fill holes: background is whatever off-pixel is reachable from the box edge
   const seen = new Uint8Array(bw * bh)
   const stack: number[] = []
@@ -142,46 +162,82 @@ function maskFor(data: Uint8ClampedArray, w: number, h: number, b: PxBox): Uint8
   return coverage < 0.08 || coverage > 0.97 ? null : mask
 }
 
-function drawMask(ctx: CanvasRenderingContext2D, mask: Uint8Array, b: PxBox, rgb: [number, number, number], line: number) {
+interface PreparedItem {
+  b: PxBox
+  /** white where the item is */
+  fill: HTMLCanvasElement
+  /** white on the item's inner edge */
+  edge: HTMLCanvasElement
+}
+
+export interface PreparedSegments {
+  w: number
+  h: number
+  line: number
+  /** same order as the boxes passed in; null where there was no box */
+  items: (PreparedItem | null)[]
+}
+
+function blank(w: number, h: number) {
+  const c = document.createElement("canvas")
+  c.width = Math.max(1, w)
+  c.height = Math.max(1, h)
+  return c
+}
+
+function fromMask(mask: Uint8Array, b: PxBox, line: number): PreparedItem {
   const bw = b.x1 - b.x0
   const bh = b.y1 - b.y0
-  const img = ctx.createImageData(bw, bh)
-  const px = img.data
+  const fill = blank(bw, bh)
+  const edge = blank(bw, bh)
+  const fctx = fill.getContext("2d")!
+  const ectx = edge.getContext("2d")!
+  const fi = fctx.createImageData(bw, bh)
+  const ei = ectx.createImageData(bw, bh)
   for (let y = 0; y < bh; y++) {
     for (let x = 0; x < bw; x++) {
       const p = y * bw + x
       if (!mask[p]) continue
-      // edge: any pixel within `line` px that is outside the mask
-      let edge = false
-      for (let d = 1; d <= line && !edge; d++) {
-        if (x - d < 0 || x + d >= bw || y - d < 0 || y + d >= bh) edge = true
-        else if (!mask[p - d] || !mask[p + d] || !mask[p - d * bw] || !mask[p + d * bw]) edge = true
+      fi.data[p * 4 + 3] = 255
+      fi.data[p * 4] = fi.data[p * 4 + 1] = fi.data[p * 4 + 2] = 255
+      let isEdge = false
+      for (let d = 1; d <= line && !isEdge; d++) {
+        if (x - d < 0 || x + d >= bw || y - d < 0 || y + d >= bh) isEdge = true
+        else if (!mask[p - d] || !mask[p + d] || !mask[p - d * bw] || !mask[p + d * bw]) isEdge = true
       }
-      const i = p * 4
-      px[i] = rgb[0]
-      px[i + 1] = rgb[1]
-      px[i + 2] = rgb[2]
-      px[i + 3] = edge ? 255 : 105
+      if (isEdge) {
+        ei.data[p * 4 + 3] = 255
+        ei.data[p * 4] = ei.data[p * 4 + 1] = ei.data[p * 4 + 2] = 255
+      }
     }
   }
-  ctx.putImageData(img, b.x0, b.y0)
+  fctx.putImageData(fi, 0, 0)
+  ectx.putImageData(ei, 0, 0)
+  return { b, fill, edge }
 }
 
-function drawBox(ctx: CanvasRenderingContext2D, b: PxBox, color: string, line: number) {
-  const r = Math.min(18, (b.x1 - b.x0) / 6, (b.y1 - b.y0) / 6)
-  ctx.beginPath()
-  ctx.roundRect(b.x0 + line / 2, b.y0 + line / 2, b.x1 - b.x0 - line, b.y1 - b.y0 - line, r)
-  ctx.globalAlpha = 0.4
-  ctx.fillStyle = color
-  ctx.fill()
-  ctx.globalAlpha = 1
-  ctx.lineWidth = line
-  ctx.strokeStyle = color
-  ctx.stroke()
+function fromBox(b: PxBox, line: number): PreparedItem {
+  const bw = b.x1 - b.x0
+  const bh = b.y1 - b.y0
+  const r = Math.min(22, bw / 6, bh / 6)
+  const fill = blank(bw, bh)
+  const edge = blank(bw, bh)
+  const fctx = fill.getContext("2d")!
+  fctx.fillStyle = "#fff"
+  fctx.beginPath()
+  fctx.roundRect(0, 0, bw, bh, r)
+  fctx.fill()
+  const ectx = edge.getContext("2d")!
+  ectx.strokeStyle = "#fff"
+  ectx.lineWidth = line
+  ectx.beginPath()
+  ectx.roundRect(line / 2, line / 2, bw - line, bh - line, r)
+  ectx.stroke()
+  return { b, fill, edge }
 }
 
-/** Draws each item's coloured mask and outline onto `canvas`, sized to the photo. */
-export async function drawSegments(canvas: HTMLCanvasElement, src: string, segments: Segment[]) {
+/** Finds each item's shape once per photo; render it (and re-render on highlight) with renderSegments. */
+export async function prepareSegments(src: string, boxes: (Box | null)[]): Promise<PreparedSegments> {
   const img = await loadImage(src)
   const w = img.naturalWidth
   const h = img.naturalHeight
@@ -191,30 +247,85 @@ export async function drawSegments(canvas: HTMLCanvasElement, src: string, segme
   const wctx = work.getContext("2d", { willReadFrequently: true })!
   wctx.drawImage(img, 0, 0)
   const data = wctx.getImageData(0, 0, w, h).data
-
-  canvas.width = w
-  canvas.height = h
-  const ctx = canvas.getContext("2d")!
-  ctx.clearRect(0, 0, w, h)
-  const line = Math.max(3, Math.round(Math.max(w, h) / 220))
-  // largest first, so small items stay visible on top
-  const ordered = [...segments].sort(
-    (a, b) => (b.box.bottom - b.box.top) * (b.box.right - b.box.left) - (a.box.bottom - a.box.top) * (a.box.right - a.box.left)
-  )
-  for (const s of ordered) {
-    const b = toPx(s.box, w, h)
+  const line = Math.max(4, Math.round(Math.max(w, h) / 170))
+  const items = boxes.map((box) => {
+    if (!box) return null
+    const b = toPx(box, w, h)
+    if (b.x1 - b.x0 < 4 || b.y1 - b.y0 < 4) return null
     const mask = maskFor(data, w, h, b)
-    if (mask) {
-      // putImageData replaces pixels, so draw each mask through its own layer
-      const layer = document.createElement("canvas")
-      layer.width = w
-      layer.height = h
-      drawMask(layer.getContext("2d")!, mask, b, hexToRgb(s.color), line)
-      ctx.drawImage(layer, 0, 0)
-    } else {
-      drawBox(ctx, b, s.color, line)
+    return mask ? fromMask(mask, b, line) : fromBox(b, line)
+  })
+  return { w, h, line, items }
+}
+
+const scratch = typeof document !== "undefined" ? document.createElement("canvas") : null
+
+/** Draws `src` (a white shape) in `color` at the item's position. */
+function drawTinted(ctx: CanvasRenderingContext2D, src: HTMLCanvasElement, x: number, y: number, color: string) {
+  if (!scratch) return
+  scratch.width = src.width
+  scratch.height = src.height
+  const s = scratch.getContext("2d")!
+  s.globalCompositeOperation = "source-over"
+  s.drawImage(src, 0, 0)
+  s.globalCompositeOperation = "source-in"
+  s.fillStyle = color
+  s.fillRect(0, 0, src.width, src.height)
+  ctx.drawImage(scratch, x, y)
+}
+
+/**
+ * Spotlight overlay: the background is dimmed, every item stays bright with a light
+ * tint, a white halo and an outline in its colour. With `active` set, that item glows
+ * and the others recede.
+ */
+export function renderSegments(canvas: HTMLCanvasElement, prep: PreparedSegments, colors: string[], active: number | null) {
+  const { w, h, line, items } = prep
+  if (canvas.width !== w) canvas.width = w
+  if (canvas.height !== h) canvas.height = h
+  const ctx = canvas.getContext("2d")!
+  ctx.save()
+  ctx.clearRect(0, 0, w, h)
+
+  ctx.fillStyle = "rgba(10, 14, 12, 0.55)"
+  ctx.fillRect(0, 0, w, h)
+  // lift the dim off each item, with a soft feathered edge around it
+  ctx.globalCompositeOperation = "destination-out"
+  items.forEach((it, i) => {
+    if (!it) return
+    ctx.globalAlpha = active === null || active === i ? 1 : 0.45
+    ctx.filter = `blur(${line * 2}px)`
+    ctx.drawImage(it.fill, it.b.x0, it.b.y0)
+    ctx.filter = "none"
+    ctx.drawImage(it.fill, it.b.x0, it.b.y0)
+  })
+  ctx.globalCompositeOperation = "source-over"
+
+  items.forEach((it, i) => {
+    if (!it) return
+    ctx.globalAlpha = active === null ? 0.2 : active === i ? 0.28 : 0.08
+    drawTinted(ctx, it.fill, it.b.x0, it.b.y0, colors[i])
+  })
+
+  const halo = Math.max(2, Math.round(line * 0.55))
+  const order = items.map((_, i) => i).sort((a, b) => (a === active ? 1 : b === active ? -1 : 0))
+  for (const i of order) {
+    const it = items[i]
+    if (!it) continue
+    const dimmed = active !== null && active !== i
+    ctx.globalAlpha = dimmed ? 0.45 : 0.95
+    for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, 1], [-1, 1], [1, -1]]) {
+      drawTinted(ctx, it.edge, it.b.x0 + dx * halo, it.b.y0 + dy * halo, "#ffffff")
     }
+    ctx.globalAlpha = dimmed ? 0.5 : 1
+    if (active === i) {
+      ctx.shadowColor = colors[i]
+      ctx.shadowBlur = line * 5
+    }
+    drawTinted(ctx, it.edge, it.b.x0, it.b.y0, colors[i])
+    ctx.shadowBlur = 0
   }
+  ctx.restore()
 }
 
 /** Square-ish JPEG thumbnail of one item, max 200px, cut from the photo. */
