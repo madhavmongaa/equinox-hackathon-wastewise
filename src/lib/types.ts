@@ -43,7 +43,15 @@ export interface ScanAI {
   clarifying_options: string[]
   rule_found: boolean
   rule_id: string | null
+  /** The model's own rule, filled only when the guide has no matching rule. */
+  generated_rule?: GeneratedRule | null
   reasoning_note: string
+}
+
+export interface GeneratedRule {
+  category_id: string
+  preparation: string[]
+  explanation: string
 }
 
 export interface ImageInput {
@@ -61,7 +69,7 @@ export interface ScanInput {
   correctedItem?: string
 }
 
-/** The app's decision, always built from the guide file. */
+/** The app's decision: a guide rule when one matches, else the model's AI-suggested rule. */
 export type Outcome =
   | { kind: "clarify"; ai: ScanAI; question: string; options: string[] }
   | { kind: "result"; ai: ScanAI; rule: Rule; category: Category }

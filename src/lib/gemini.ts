@@ -1,7 +1,7 @@
 import { GoogleGenAI, Type, type Content, type Part, type Schema } from "@google/genai"
-import { guideJsonString } from "@/lib/guide"
+import { guide, guideJsonString } from "@/lib/guide"
 import { dataUrlToInline } from "@/lib/image"
-import type { ImageInput, QA, ScanAI, ScanInput } from "@/lib/types"
+import type { GeneratedRule, ImageInput, QA, ScanAI, ScanInput } from "@/lib/types"
 
 const apiKey =
   (import.meta.env.VITE_GEMINI_API_KEY as string | undefined) ||
@@ -31,9 +31,9 @@ export const SCANNER_INSTRUCTION = `You are WasteWise, a waste-identification as
 2. Match it to a rule in the supplied CAMPUS WASTE GUIDE (JSON below).
 
 Rules you must follow:
-- Use ONLY the supplied guide to decide the disposal category and preparation steps. Never use general knowledge or other cities' rules for disposal decisions.
+- If a rule in the supplied guide matches the item, use it: set rule_found to true and rule_id to that rule, and set generated_rule to null.
 - If the photo is blurry, partly hidden, or the material can't be determined (e.g. paper cup vs plastic-lined cup, single-material film vs multilayer wrapper, clean vs greasy), set needs_clarification to true and ask ONE short, specific question with 2–4 answer options. Do not guess.
-- If you can identify the item but no rule in the guide matches it, set rule_found to false and leave rule_id null. Do not invent a rule.
+- If you can identify the item but no rule in the guide matches it, set rule_found to false, leave rule_id null, and write your own rule in generated_rule: pick the best category_id from the guide's categories using standard Indian campus waste-segregation practice, give 1–4 short preparation steps, and a one- or two-sentence explanation of why it goes in that bin. Never leave an identified item without a rule.
 - If the image doesn't show a waste item at all, say so in the item field and set needs_clarification to true.
 - Respond ONLY with JSON matching the response schema.
 
@@ -44,7 +44,7 @@ const LULU_INSTRUCTION = `You are Lulu, the friendly WasteWise assistant for the
 
 Decide the user's intent: identify_item, answer_clarification, correct_item, show_history, show_stats, show_rank, show_leaderboard, explain_method, start_quiz, category_question, or off_topic.
 
-For identify_item, answer_clarification and correct_item, follow the WasteWise rules exactly: use ONLY the supplied campus waste guide; ask ONE clarifying question when uncertain; set rule_found to false when the guide has no matching rule. Never invent rules, numbers, ranks or statistics — the app fills in all numbers.
+For identify_item, answer_clarification and correct_item, follow the WasteWise rules exactly: use the matching rule from the supplied campus waste guide when there is one; ask ONE clarifying question when uncertain. When the guide has no matching rule, set rule_found to false and fill generated_rule with your own rule (a guide category_id, 1–4 preparation steps and a short explanation). Never invent numbers, ranks or statistics — the app fills in all numbers.
 
 For category_question, set category_id to the guide category the user asks about (e.g. "dry" for the blue bin) and do not list the rules yourself — the app lists them from the guide.
 
@@ -53,6 +53,17 @@ Do not quote rule text, bin names for an item, points, ranks, streaks or counts 
 Respond ONLY with JSON matching the schema.`
 
 // ---------- schemas ----------
+
+const generatedRuleSchema: Schema = {
+  type: Type.OBJECT,
+  nullable: true,
+  properties: {
+    category_id: { type: Type.STRING, enum: guide.categories.map((c) => c.id) },
+    preparation: { type: Type.ARRAY, items: { type: Type.STRING } },
+    explanation: { type: Type.STRING },
+  },
+  required: ["category_id", "preparation", "explanation"],
+}
 
 const scanSchema: Schema = {
   type: Type.OBJECT,
@@ -65,6 +76,7 @@ const scanSchema: Schema = {
     clarifying_options: { type: Type.ARRAY, items: { type: Type.STRING } },
     rule_found: { type: Type.BOOLEAN },
     rule_id: { type: Type.STRING, nullable: true },
+    generated_rule: generatedRuleSchema,
     reasoning_note: { type: Type.STRING },
   },
   required: [
@@ -76,6 +88,7 @@ const scanSchema: Schema = {
     "clarifying_options",
     "rule_found",
     "rule_id",
+    "generated_rule",
     "reasoning_note",
   ],
   propertyOrdering: [
@@ -87,6 +100,7 @@ const scanSchema: Schema = {
     "clarifying_options",
     "rule_found",
     "rule_id",
+    "generated_rule",
     "reasoning_note",
   ],
 }
@@ -118,6 +132,7 @@ export interface LuluAI {
   clarifying_options: string[]
   rule_found: boolean
   rule_id: string | null
+  generated_rule: GeneratedRule | null
   category_id: string | null
 }
 
@@ -135,6 +150,7 @@ const luluSchema: Schema = {
     clarifying_options: { type: Type.ARRAY, items: { type: Type.STRING } },
     rule_found: { type: Type.BOOLEAN },
     rule_id: { type: Type.STRING, nullable: true },
+    generated_rule: generatedRuleSchema,
     category_id: { type: Type.STRING, nullable: true },
   },
   required: [
@@ -149,6 +165,7 @@ const luluSchema: Schema = {
     "clarifying_options",
     "rule_found",
     "rule_id",
+    "generated_rule",
     "category_id",
   ],
 }

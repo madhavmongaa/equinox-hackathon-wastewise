@@ -8,7 +8,7 @@ import { Chip } from "@/components/ui/chip"
 import { LuluMascot } from "@/components/ui/LuluMascot"
 import { Sheet } from "@/components/ui/sheet"
 import { CategoryBadge, Thumb, confidenceLabel } from "@/components/brand"
-import { ruleLabel, suggestionItems } from "@/lib/guide"
+import { AI_RULE_ID, ruleLabel, suggestionItems } from "@/lib/guide"
 import type { Category, Outcome, Rule, RuleSnapshot, ScanAI } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
@@ -143,7 +143,11 @@ export function EvidenceBox({ ruleId, sourceText, compact }: { ruleId: string; s
       </button>
       {open && (
         <div className={cn("px-4 pb-4", compact && "pb-3")}>
-          <blockquote className="border-l-4 border-green pl-3 text-sm leading-relaxed text-ink">“{sourceText}”</blockquote>
+          {ruleId === AI_RULE_ID ? (
+            <p className="text-sm leading-relaxed text-ink">{sourceText}</p>
+          ) : (
+            <blockquote className="border-l-4 border-green pl-3 text-sm leading-relaxed text-ink">“{sourceText}”</blockquote>
+          )}
           <Mark className="mt-2 text-[11px]">{ruleLabel(ruleId)}</Mark>
         </div>
       )}

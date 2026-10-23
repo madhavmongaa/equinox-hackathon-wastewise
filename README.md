@@ -2,11 +2,16 @@
 
 A mobile-first AI waste-sorting assistant for the Zenith School of AI campus.
 
-**Core principle: Gemini identifies the item. The guide decides the bin.**
-The model only returns an item name and a `rule_id`. The app checks that `rule_id` against
+**Core principle: Gemini identifies the item. The guide decides the bin first; Gemini fills the gaps.**
+When the guide covers the item, the model returns a `rule_id`. The app checks it against
 `src/data/wasteGuide.json` and shows the category, preparation steps and quoted rule text from the
-guide file, never from the model's wording. If the rule isn't in the guide, the app says
-"Local disposal rule not found".
+guide file, never from the model's wording.
+
+When the guide has no matching rule, the model writes its own `generated_rule`: one of the guide's
+categories (it can't invent a new bin), up to four preparation steps and a short explanation. The
+app shows it as a normal result, labelled **"AI-suggested · not in the campus guide"** instead of a
+guide section number, so official wording and model wording are never confused. The app only says
+"Local disposal rule not found" when the item stays unclear after the clarifying questions.
 
 ## Stack
 
@@ -45,14 +50,15 @@ leaderboard shows "not connected". No placeholder or fake numbers are ever shown
 `src/data/wasteGuide.json` holds the campus guide. **The current file is a draft with sample
 wording.** Replace every `source_text` with the exact sentences from the official Zenith guide
 before the demo, and delete any item the guide doesn't cover. The whole file is sent to Gemini as
-part of the system instruction.
+part of the system instruction. Items you delete aren't lost: Gemini answers them with an
+AI-suggested rule instead.
 
 ## Where things are
 
 | Area | Files |
 | --- | --- |
 | Screens | `src/screens/*` (Home, Scan, History, Leaderboard, Profile) |
-| Scan flow + guide validation | `src/lib/flow.ts`, `src/lib/guide.ts`, `src/lib/gemini.ts` |
+| Scan flow, guide validation + AI-suggested rules | `src/lib/flow.ts`, `src/lib/guide.ts`, `src/lib/gemini.ts` |
 | Image resize / thumbnails | `src/lib/image.ts` |
 | Camera + upload (shared by screens and chat) | `src/state/capture.tsx` |
 | Lulu chat | `src/chat/LuluChat.tsx` |

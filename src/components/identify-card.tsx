@@ -27,7 +27,7 @@ export function IdentifyCard({ onImage, onText, index, className }: IdentifyCard
       <div className="flex items-start justify-between gap-2">
         <h2 className="display text-[28px] leading-tight">Identify your waste</h2>
         <Mark className="mt-1 shrink-0 text-xs">
-          Zero guessing
+          Guide first
         </Mark>
       </div>
       <p className="mt-1 text-sm text-sub">Snap it, upload it, or tell Lulu what it is.</p>

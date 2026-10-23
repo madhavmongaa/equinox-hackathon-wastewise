@@ -23,7 +23,7 @@ import { useCapture } from "@/state/capture"
 const WELCOME =
   "Hi! I'm Lulu 👋 Show me any item and I'll tell you which bin it goes in — using our campus waste guide. Scan it, upload a photo, or just describe it."
 const EXPLAIN =
-  "I identify the item, then look it up in the Zenith campus waste guide. I only answer from the guide and show you the exact rule. If I'm not sure, I ask you first."
+  "I identify the item, then look it up in the Zenith campus waste guide. If the guide has a rule for it, I show you that exact rule. If it doesn't, I suggest a bin myself and mark it as AI-suggested. If I'm not sure what the item is, I ask you first."
 const OFF_TOPIC = "I'm best at waste sorting! Want to scan something?"
 const QUIZ = "The Eco Quiz is coming soon 🧠 For now, show me something to sort!"
 
@@ -65,6 +65,7 @@ function toScanAI(ai: LuluAI, fallbackItem: string): ScanAI {
     clarifying_options: Array.isArray(ai.clarifying_options) ? ai.clarifying_options.slice(0, 4) : [],
     rule_found: ai.rule_found,
     rule_id: ai.rule_id,
+    generated_rule: ai.generated_rule,
     reasoning_note: "",
   }
 }

@@ -20,7 +20,11 @@ export function rulesForCategory(id: string): Rule[] {
   return guide.rules.filter((r) => r.category_id === id)
 }
 
+/** rule_id given to rules the model wrote itself because the guide had none. */
+export const AI_RULE_ID = "ai"
+
 export function ruleLabel(ruleId: string) {
+  if (ruleId === AI_RULE_ID) return "AI-suggested · not in the campus guide"
   return `Campus Waste Guide §${ruleId}`
 }
 

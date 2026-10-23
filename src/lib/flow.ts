@@ -1,9 +1,9 @@
-// Gemini identifies the item. The guide decides the bin.
-// Everything shown on screen (category, steps, rule text) comes from the guide file.
+// Gemini identifies the item. The guide decides the bin when it has a rule for it;
+// otherwise Gemini's own rule is used and labelled as AI-suggested.
 
-import { getCategory, getRule } from "@/lib/guide"
+import { AI_RULE_ID, getCategory, getRule } from "@/lib/guide"
 import { identifyItem } from "@/lib/gemini"
-import type { HistoryEntry, Outcome, ScanAI, ScanInput } from "@/lib/types"
+import type { HistoryEntry, Outcome, Rule, ScanAI, ScanInput } from "@/lib/types"
 import { uuid } from "@/lib/utils"
 
 export const MAX_CLARIFY_ROUNDS = 2
@@ -16,10 +16,24 @@ export function interpret(ai: ScanAI, roundsAnswered: number): Outcome {
     }
     return { kind: "not_found", ai, reason: "unclear" }
   }
-  const rule = ai.rule_found ? getRule(ai.rule_id) : null
+  const rule = (ai.rule_found ? getRule(ai.rule_id) : null) ?? generatedRule(ai)
   const category = rule ? getCategory(rule.category_id) : null
   if (rule && category) return { kind: "result", ai, rule, category }
   return { kind: "not_found", ai, reason: "no_rule" }
+}
+
+/** Turns the model's own rule into a Rule, if it gave a usable one. */
+function generatedRule(ai: ScanAI): Rule | null {
+  const g = ai.generated_rule
+  if (!g || !getCategory(g.category_id) || !g.explanation?.trim()) return null
+  return {
+    rule_id: AI_RULE_ID,
+    item_names: [ai.item],
+    material: ai.material,
+    category_id: g.category_id,
+    preparation: (g.preparation ?? []).filter(Boolean).slice(0, 4),
+    source_text: g.explanation.trim(),
+  }
 }
 
 export async function runIdentification(input: ScanInput): Promise<Outcome> {
@@ -73,7 +87,7 @@ export function buildHistoryEntry(opts: {
 
 /** The item key used for the "same item within 10 minutes" fair-play check. */
 export function itemKey(outcome: Outcome, input: ScanInput) {
-  if (outcome.kind === "result") return `rule:${outcome.rule.rule_id}`
+  if (outcome.kind === "result" && outcome.rule.rule_id !== AI_RULE_ID) return `rule:${outcome.rule.rule_id}`
   const name = input.correctedItem ?? outcome.ai?.item ?? input.description
   return `item:${(name || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()}`
 }
