@@ -1,12 +1,13 @@
 // Lulu chat (Part 3). One Gemini call per user turn; the app decides what is shown.
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Camera, ChevronRight, Paperclip, Send, X } from "lucide-react"
+import { Camera, ChevronRight, Paperclip, Send, Volume2, VolumeX, X } from "lucide-react"
 import { Mark } from "@/components/ui/card"
 import { Sheet } from "@/components/ui/sheet"
 import { LuluMascot } from "@/components/ui/LuluMascot"
 import { CategoryChip } from "@/components/brand"
 import { ANALYSIS_STEPS, ClarificationCard, CorrectionSheet, ErrorCard, OutcomeView, ResultActions, useAnalysisStep } from "@/components/scan-views"
+import { MicButton, useVoiceInput } from "@/components/voice"
 import { BoardList, HistoryRow, LevelProgress, NotConnectedNote, StatTile } from "@/components/widgets"
 import { useLeaderboard, useMyRank } from "@/hooks/useLeaderboard"
 import { useStats } from "@/hooks/useStats"
@@ -16,6 +17,7 @@ import { getCategory, guide, ruleLabel, rulesForCategory } from "@/lib/guide"
 import { levelFor } from "@/lib/levels"
 import type { ImageInput, LuluMood, Outcome, ScanAI, ScanInput } from "@/lib/types"
 import { cn, uuid } from "@/lib/utils"
+import { canSpeak, consumeVoiceTurn, outcomeSpeech, speak, stopSpeaking, useSpeakingKey } from "@/lib/voice"
 import { errorMessage } from "@/screens/ScanScreen"
 import { useApp } from "@/state/AppContext"
 import { useCapture } from "@/state/capture"
@@ -24,6 +26,15 @@ const WELCOME =
   "Hi! I'm Lulu 👋 Show me any item and I'll tell you which bin it goes in — using our campus waste guide. Scan it, upload a photo, or just describe it."
 const EXPLAIN =
   "I identify the item, then look it up in the Zenith campus waste guide. If the guide has a rule for it, I show you that exact rule. If it doesn't, I suggest a bin myself and mark it as AI-suggested. If I'm not sure what the item is, I ask you first."
+const READ_ALOUD_KEY = "wastewise.readAloud.v1"
+
+/** What Lulu says out loud: her message, plus the answer the card shows (her text leaves the bin out). */
+function speechFor(text: string, card?: Card) {
+  if (card?.type === "outcome") return `${text} ${outcomeSpeech(card.outcome)}`
+  if (card?.type === "clarify") return text.includes(card.outcome.question) ? text : `${text} ${outcomeSpeech(card.outcome)}`
+  return text
+}
+
 const OFF_TOPIC = "I'm best at waste sorting! Want to scan something?"
 const QUIZ = "The Eco Quiz is coming soon 🧠 For now, show me something to sort!"
 
@@ -86,11 +97,38 @@ export function LuluChat() {
   const messagesRef = useRef(messages)
   messagesRef.current = messages
 
+  // voice: replies are read aloud when the user spoke, or always with the toggle on
+  const [readAloud, setReadAloud] = useState(() => {
+    try {
+      return localStorage.getItem(READ_ALOUD_KEY) === "1"
+    } catch {
+      return false
+    }
+  })
+  const readAloudRef = useRef(readAloud)
+  readAloudRef.current = readAloud
+  const spokenTurn = useRef(false)
+  const speaking = useSpeakingKey() !== null
+  const toggleReadAloud = () => {
+    const next = !readAloud
+    setReadAloud(next)
+    if (!next) stopSpeaking()
+    try {
+      localStorage.setItem(READ_ALOUD_KEY, next ? "1" : "0")
+    } catch {
+      /* ignore */
+    }
+  }
+
   useEffect(() => {
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" })
   }, [messages, typing])
 
-  const push = useCallback((m: Omit<Msg, "id">) => setMessages((list) => [...list, { ...m, id: uuid() }]), [])
+  const push = useCallback((m: Omit<Msg, "id">) => {
+    const id = uuid()
+    setMessages((list) => [...list, { ...m, id }])
+    return id
+  }, [])
   const patchCard = useCallback((id: string, fn: (c: Card) => Card) => {
     setMessages((list) => list.map((m) => (m.id === id && m.card ? { ...m, card: fn(m.card) } : m)))
   }, [])
@@ -98,7 +136,8 @@ export function LuluChat() {
   /** Lulu "talks" while her reply appears, then settles into the reply's mood. */
   const say = useCallback(
     (text: string, settle: LuluMood, card?: Card) => {
-      push({ role: "lulu", text, card })
+      const id = push({ role: "lulu", text, card })
+      if (readAloudRef.current || spokenTurn.current) speak(speechFor(text, card), id)
       setMood("talking")
       if (moodTimer.current) clearTimeout(moodTimer.current)
       moodTimer.current = setTimeout(() => setMood(settle), 1300)
@@ -166,6 +205,7 @@ export function LuluChat() {
   const send = useCallback(
     async (turn: PendingTurn, opts: { echo?: boolean } = {}) => {
       if (!turn.text.trim() && !turn.image) return
+      spokenTurn.current = consumeVoiceTurn()
       if (opts.echo !== false) push({ role: "user", text: turn.text || undefined, image: turn.image?.thumbnail })
       // a fresh photo starts a new identification
       if (turn.image) pending.current = null
@@ -188,7 +228,9 @@ export function LuluChat() {
       } catch (err) {
         setTyping(null)
         setMood("sorry")
-        push({ role: "lulu", card: { type: "error", message: errorMessage(err), retry: turn } })
+        const message = errorMessage(err)
+        const id = push({ role: "lulu", card: { type: "error", message, retry: turn } })
+        if (readAloudRef.current || spokenTurn.current) speak(message, id)
       }
     },
     [handleAI, push]
@@ -201,23 +243,47 @@ export function LuluChat() {
 
   // Quick chips answered by the app itself (no AI needed)
   const local = (userText: string, reply: string, settle: LuluMood, card?: Card) => {
+    spokenTurn.current = false
     push({ role: "user", text: userText })
     say(reply, settle, card)
   }
 
-  const close = useCallback(() => setChatOpen(false), [setChatOpen])
+  const mic = useVoiceInput({
+    onInterim: setText,
+    onFinal: (t) => {
+      setText("")
+      send({ text: t, image: null })
+    },
+  })
+
+  const close = useCallback(() => {
+    stopSpeaking()
+    mic.stop()
+    setChatOpen(false)
+  }, [setChatOpen, mic])
 
   return (
     <Sheet open={chatOpen} onClose={close} panel labelledBy="lulu-title">
       {/* header */}
       <div className="flex items-center gap-3 border-b border-green/12 px-4 py-3">
         <span className="bg-mint grid shrink-0 aspect-square place-items-center overflow-hidden rounded-full p-0.5">
-          <LuluMascot mood={mood} size={44} />
+          <LuluMascot mood={speaking ? "talking" : mood} size={44} />
         </span>
         <div className="min-w-0 flex-1">
           <h2 id="lulu-title" className="display text-2xl leading-none">Lulu</h2>
           <Mark className="mt-1 text-[11px]">Your WasteWise helper</Mark>
         </div>
+        {canSpeak() && (
+          <button
+            onClick={toggleReadAloud}
+            aria-pressed={readAloud}
+            aria-label={readAloud ? "Stop reading replies aloud" : "Read Lulu's replies aloud"}
+            title={readAloud ? "Replies are read aloud" : "Read replies aloud"}
+            className={cn("ww-press grid h-11 w-11 place-items-center rounded-full", readAloud ? "pill" : "pill-glass text-green")}
+          >
+            {readAloud ? <Volume2 size={20} /> : <VolumeX size={20} />}
+          </button>
+        )}
         <button onClick={close} className="ww-press pill-glass grid h-11 w-11 place-items-center" aria-label="Close chat">
           <X size={20} />
         </button>
@@ -241,6 +307,7 @@ export function LuluChat() {
                 {m.card && (
                   <ChatCard
                     card={m.card}
+                    messageId={m.id}
                     onAnswer={(answer) => {
                       patchCard(m.id, (c) => (c.type === "clarify" ? { ...c, answered: true } : c))
                       send({ text: answer, image: null })
@@ -313,9 +380,10 @@ export function LuluChat() {
           ref={inputRef}
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="Ask Lulu or describe an item…"
+          placeholder={mic.listening ? "Listening…" : "Ask Lulu or describe an item…"}
           className="field h-11 min-w-0 flex-1 px-4 text-sm"
         />
+        <MicButton listening={mic.listening} onClick={mic.toggle} disabled={!!typing && !mic.listening} />
         <button
           type="submit"
           aria-label="Send"
@@ -369,6 +437,7 @@ function TypingRow({ mode }: { mode: "identify" | "chat" }) {
 
 interface ChatCardProps {
   card: Card
+  messageId: string
   onAnswer: (a: string) => void
   onRetakePhoto: () => void
   onGotIt: () => void
@@ -377,7 +446,7 @@ interface ChatCardProps {
   onNavigate: () => void
 }
 
-function ChatCard({ card, onAnswer, onRetakePhoto, onGotIt, onCorrect, onRetry, onNavigate }: ChatCardProps) {
+function ChatCard({ card, messageId, onAnswer, onRetakePhoto, onGotIt, onCorrect, onRetry, onNavigate }: ChatCardProps) {
   switch (card.type) {
     case "outcome":
       return (
@@ -386,6 +455,7 @@ function ChatCard({ card, onAnswer, onRetakePhoto, onGotIt, onCorrect, onRetry, 
           outcome={card.outcome}
           image={card.input.image?.thumbnail ?? null}
           corrected={!!card.input.correctedItem}
+          speakKey={messageId}
           actions={<ResultActions compact saved={card.saved} onGotIt={onGotIt} onCorrect={onCorrect} />}
         />
       )

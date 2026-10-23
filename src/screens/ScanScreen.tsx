@@ -7,6 +7,8 @@ import { AIError } from "@/lib/gemini"
 import { runIdentification } from "@/lib/flow"
 import { playScanSuccessSound } from "@/lib/sound"
 import type { ImageInput, Outcome, ScanAI, ScanInput } from "@/lib/types"
+import { MicButton, useVoiceInput } from "@/components/voice"
+import { consumeVoiceTurn, outcomeSpeech, speak, stopSpeaking } from "@/lib/voice"
 import { useApp, type ScanStart } from "@/state/AppContext"
 import { useCapture } from "@/state/capture"
 
@@ -35,6 +37,8 @@ export function ScanScreen({ start }: { start?: ScanStart }) {
 
   const run = useCallback(async (next: ScanInput) => {
     const id = ++runId.current
+    const spoken = consumeVoiceTurn()
+    stopSpeaking()
     setInput(next)
     setStage("analyzing")
     setError(null)
@@ -48,6 +52,8 @@ export function ScanScreen({ start }: { start?: ScanStart }) {
       // the AI's own identification (after any clarifications), kept separately from a correction
       if (!next.correctedItem && out.ai) setOriginalAi(out.ai)
       if (out.kind === "result" || out.kind === "multi") playScanSuccessSound()
+      // asked by voice, answered by voice (same keys as the cards' Listen buttons)
+      if (spoken) speak(outcomeSpeech(out), out.kind === "multi" ? "multi" : out.kind === "result" ? "result" : "scan")
       setStage(out.kind === "clarify" ? "clarify" : "result")
     } catch (err) {
       if (id !== runId.current) return
@@ -56,7 +62,16 @@ export function ScanScreen({ start }: { start?: ScanStart }) {
     }
   }, [])
 
+  // stop reading aloud when leaving the scan screen
+  useEffect(() => stopSpeaking, [])
+
+  const detailsMic = useVoiceInput({
+    onInterim: (t) => setInput((p) => ({ ...p, description: t })),
+    onFinal: (t) => setInput((p) => ({ ...p, description: t })),
+  })
+
   const reset = useCallback(() => {
+    stopSpeaking()
     runId.current++
     setInput(emptyInput())
     setOutcome(null)
@@ -147,12 +162,15 @@ export function ScanScreen({ start }: { start?: ScanStart }) {
           <div className="space-y-4">
           <label className="block">
             <span className="on-sky mb-1.5 block text-sm font-semibold">Add details (optional)</span>
-            <input
-              value={input.description}
-              onChange={(e) => setInput((p) => ({ ...p, description: e.target.value }))}
-              placeholder="e.g. it's oily, has a plastic window"
-              className="field h-12 w-full px-5 text-[15px]"
-            />
+            <span className="flex gap-2">
+              <input
+                value={input.description}
+                onChange={(e) => setInput((p) => ({ ...p, description: e.target.value }))}
+                placeholder={detailsMic.listening ? "Listening…" : "e.g. it's oily, has a plastic window"}
+                className="field h-12 min-w-0 flex-1 px-5 text-[15px]"
+              />
+              <MicButton listening={detailsMic.listening} onClick={detailsMic.toggle} size={48} />
+            </span>
           </label>
           <div className="grid grid-cols-2 gap-3">
             <Button variant="outline" size="lg" onClick={retake}>

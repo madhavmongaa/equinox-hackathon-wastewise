@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { ArrowRight, Camera, FolderOpen } from "lucide-react"
 import { Card, Mark } from "@/components/ui/card"
+import { MicButton, useVoiceInput } from "@/components/voice"
 import { cn } from "@/lib/utils"
 import type { ImageInput } from "@/lib/types"
 import { useCapture } from "@/state/capture"
@@ -16,6 +17,13 @@ interface IdentifyCardProps {
 export function IdentifyCard({ onImage, onText, index, className }: IdentifyCardProps) {
   const capture = useCapture()
   const [text, setText] = useState("")
+  const mic = useVoiceInput({
+    onInterim: setText,
+    onFinal: (t) => {
+      setText("")
+      onText(t)
+    },
+  })
 
   const pick = async (mode: "camera" | "upload") => {
     const img = await capture(mode)
@@ -30,7 +38,7 @@ export function IdentifyCard({ onImage, onText, index, className }: IdentifyCard
           Guide first
         </Mark>
       </div>
-      <p className="mt-1 text-sm text-sub">Snap it, upload it, or tell Lulu what it is.</p>
+      <p className="mt-1 text-sm text-sub">Snap it, upload it, or tell Lulu what it is{mic.supported ? " (type or speak)" : ""}.</p>
       <div className="mt-4 grid grid-cols-2 gap-3">
         <BigAction icon={<Camera size={26} />} label="Scan Item" hint="Open camera" onClick={() => pick("camera")} primary />
         <BigAction icon={<FolderOpen size={26} />} label="Upload Photo" hint="JPG, PNG, WEBP, HEIC" onClick={() => pick("upload")} />
@@ -55,9 +63,10 @@ export function IdentifyCard({ onImage, onText, index, className }: IdentifyCard
           id="describe-item"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder="e.g. a greasy pizza box…"
+          placeholder={mic.listening ? "Listening… say the item" : "e.g. a greasy pizza box…"}
           className="field h-12 min-w-0 flex-1 px-5 text-[15px]"
         />
+        <MicButton listening={mic.listening} onClick={mic.toggle} size={48} />
         <button
           type="submit"
           disabled={!text.trim()}

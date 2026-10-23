@@ -9,9 +9,11 @@ import { LuluMascot } from "@/components/ui/LuluMascot"
 import { Sheet } from "@/components/ui/sheet"
 import { CategoryBadge, Thumb, categoryIcon, confidenceLabel } from "@/components/brand"
 import { SegmentedPhoto } from "@/components/segmented-photo"
+import { ListenButton } from "@/components/voice"
 import { AI_RULE_ID, guide, ruleLabel, suggestionItems } from "@/lib/guide"
 import { binTone, shadeFor, type BinTone } from "@/lib/binColors"
 import { cropThumbnail } from "@/lib/segment"
+import { outcomeSpeech, resultSpeech } from "@/lib/voice"
 import type { Category, MultiPart, Outcome, Rule, RuleSnapshot, ScanAI } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
@@ -184,11 +186,14 @@ interface ResultProps {
   itemName?: string
   compact?: boolean
   actions?: React.ReactNode
+  /** identifies this card's read-aloud, so its Listen button shows Stop while it plays */
+  speakKey?: string
 }
 
-export function ResultCard({ ai, rule, category, image, corrected, itemName, compact, actions }: ResultProps) {
+export function ResultCard({ ai, rule, category, image, corrected, itemName, compact, actions, speakKey = "result" }: ResultProps) {
   const conf = confidenceLabel(ai?.confidence)
   const steps = "preparation" in rule ? rule.preparation : []
+  const name = itemName ?? ai?.item ?? ""
   return (
     <div className={cn("ww-fade-up glass space-y-4", compact ? "p-4" : "p-5")}>
       <div className="flex gap-4">
@@ -205,9 +210,10 @@ export function ResultCard({ ai, rule, category, image, corrected, itemName, com
           )}
           <h2 className={cn("display leading-tight capitalize", compact ? "text-xl" : "text-3xl")}>{itemName ?? ai?.item}</h2>
           {ai?.material && <p className="mt-0.5 text-sm text-sub">{ai.material}</p>}
-          {conf && (
-            <span className="badge-mint mt-2 inline-flex px-2.5 py-1 text-[11px]">{conf}</span>
-          )}
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {conf && <span className="badge-mint inline-flex px-2.5 py-1 text-[11px]">{conf}</span>}
+            <ListenButton text={resultSpeech(name, category, steps, rule.rule_id)} speakKey={speakKey} />
+          </div>
         </div>
       </div>
 
@@ -319,18 +325,20 @@ export function OutcomeView({
   corrected,
   compact,
   actions,
+  speakKey,
 }: {
   outcome: Extract<Outcome, { kind: "result" | "not_found" | "multi" }>
+  speakKey?: string
   image: string | null
   corrected?: boolean
   compact?: boolean
   actions?: React.ReactNode
 }) {
   if (outcome.kind === "multi") {
-    return <MultiResultView parts={outcome.parts} image={image} compact={compact} actions={actions} />
+    return <MultiResultView outcome={outcome} image={image} compact={compact} actions={actions} speakKey={speakKey} />
   }
   if (outcome.kind === "result") {
-    return <ResultCard ai={outcome.ai} rule={outcome.rule} category={outcome.category} image={image} corrected={corrected} compact={compact} actions={actions} />
+    return <ResultCard ai={outcome.ai} rule={outcome.rule} category={outcome.category} image={image} corrected={corrected} compact={compact} actions={actions} speakKey={speakKey} />
   }
   return <NotFoundCard item={outcome.ai?.item} reason={outcome.reason} compact={compact} actions={actions} />
 }
@@ -397,7 +405,20 @@ function groupByBin(colored: ColoredPart[]): BinGroup[] {
 }
 
 /** Two or more items in one scan: a summary, the spotlit photo, and the items grouped by bin. */
-export function MultiResultView({ parts, image, compact, actions }: { parts: MultiPart[]; image: string | null; compact?: boolean; actions?: React.ReactNode }) {
+export function MultiResultView({
+  outcome,
+  image,
+  compact,
+  actions,
+  speakKey = "multi",
+}: {
+  outcome: Extract<Outcome, { kind: "multi" }>
+  image: string | null
+  compact?: boolean
+  actions?: React.ReactNode
+  speakKey?: string
+}) {
+  const parts = outcome.parts
   const [active, setActive] = useState<number | null>(null)
   const colored = useMemo(() => colourParts(parts), [parts])
   const groups = useMemo(() => groupByBin(colored), [colored])
@@ -422,6 +443,7 @@ export function MultiResultView({ parts, image, compact, actions }: { parts: Mul
               {parts.length} items, {bins} {bins === 1 ? "bin" : "bins"}
             </h2>
             <p className="mt-0.5 text-sm text-sub">{hasPhoto ? "Tap an item on the photo or in the list to see where it goes." : "Tap an item to see where it goes."}</p>
+            <ListenButton text={outcomeSpeech(outcome)} speakKey={speakKey} label="Listen to all" className="mt-2.5" />
           </div>
           <span className="hidden shrink-0 overflow-hidden rounded-full bg-mint p-1 sm:grid">
             <LuluMascot mood="happy" size={compact ? 44 : 56} />
