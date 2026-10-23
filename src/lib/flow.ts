@@ -3,12 +3,19 @@
 
 import { AI_RULE_ID, getCategory, getRule } from "@/lib/guide"
 import { identifyItem } from "@/lib/gemini"
-import type { HistoryEntry, Outcome, Rule, ScanAI, ScanInput } from "@/lib/types"
+import type { Box, DetectedItemAI, HistoryEntry, MultiPart, Outcome, Rule, ScanAI, ScanInput, SingleOutcome } from "@/lib/types"
 import { uuid } from "@/lib/utils"
 
 export const MAX_CLARIFY_ROUNDS = 2
 
 export function interpret(ai: ScanAI, roundsAnswered: number): Outcome {
+  if (!ai.needs_clarification && (ai.items?.length ?? 0) >= 2) {
+    return { kind: "multi", ai, parts: ai.items!.map(toPart) }
+  }
+  return interpretSingle(ai, roundsAnswered)
+}
+
+function interpretSingle(ai: ScanAI, roundsAnswered: number): Outcome {
   if (ai.needs_clarification) {
     const question = ai.clarifying_question?.trim()
     if (question && roundsAnswered < MAX_CLARIFY_ROUNDS) {
@@ -20,6 +27,30 @@ export function interpret(ai: ScanAI, roundsAnswered: number): Outcome {
   const category = rule ? getCategory(rule.category_id) : null
   if (rule && category) return { kind: "result", ai, rule, category }
   return { kind: "not_found", ai, reason: "no_rule" }
+}
+
+/** One item of a multi-item scan, decided by the same guide-first rules. */
+function toPart(it: DetectedItemAI): MultiPart {
+  const ai: ScanAI = {
+    item: it.item,
+    material: it.material,
+    confidence: it.confidence,
+    needs_clarification: false,
+    clarifying_question: null,
+    clarifying_options: [],
+    rule_found: it.rule_found,
+    rule_id: it.rule_id,
+    generated_rule: it.generated_rule,
+    reasoning_note: "",
+  }
+  return { ai, outcome: interpretSingle(ai, 0) as SingleOutcome, box: toBox(it.box_2d) }
+}
+
+function toBox(b: number[] | null): Box | null {
+  if (!Array.isArray(b) || b.length !== 4 || b.some((v) => typeof v !== "number")) return null
+  const [ymin, xmin, ymax, xmax] = b.map((v) => Math.min(1, Math.max(0, v / 1000)))
+  if (ymax - ymin < 0.01 || xmax - xmin < 0.01) return null
+  return { top: ymin, left: xmin, bottom: ymax, right: xmax }
 }
 
 /** Turns the model's own rule into a Rule, if it gave a usable one. */
@@ -49,7 +80,7 @@ export function inputType(input: ScanInput): HistoryEntry["input_type"] {
 /** Builds the history record for a finished scan ("✅ Got it"). */
 export function buildHistoryEntry(opts: {
   input: ScanInput
-  outcome: Outcome
+  outcome: SingleOutcome
   originalAi: ScanAI | null
   points: number
 }): HistoryEntry {
@@ -86,7 +117,7 @@ export function buildHistoryEntry(opts: {
 }
 
 /** The item key used for the "same item within 10 minutes" fair-play check. */
-export function itemKey(outcome: Outcome, input: ScanInput) {
+export function itemKey(outcome: SingleOutcome, input: ScanInput) {
   if (outcome.kind === "result" && outcome.rule.rule_id !== AI_RULE_ID) return `rule:${outcome.rule.rule_id}`
   const name = input.correctedItem ?? outcome.ai?.item ?? input.description
   return `item:${(name || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim()}`

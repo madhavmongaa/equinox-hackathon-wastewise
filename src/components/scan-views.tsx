@@ -1,6 +1,6 @@
 // Result / clarification / not-found / error views, shared by the Scan screen and Lulu's chat cards.
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Camera, Check, ChevronDown, CircleCheck, Pencil, RefreshCw, ScanLine, Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Mark } from "@/components/ui/card"
@@ -8,8 +8,10 @@ import { Chip } from "@/components/ui/chip"
 import { LuluMascot } from "@/components/ui/LuluMascot"
 import { Sheet } from "@/components/ui/sheet"
 import { CategoryBadge, Thumb, confidenceLabel } from "@/components/brand"
-import { AI_RULE_ID, ruleLabel, suggestionItems } from "@/lib/guide"
-import type { Category, Outcome, Rule, RuleSnapshot, ScanAI } from "@/lib/types"
+import { SegmentedPhoto } from "@/components/segmented-photo"
+import { AI_RULE_ID, guide, ruleLabel, suggestionItems } from "@/lib/guide"
+import { cropThumbnail } from "@/lib/segment"
+import type { Category, MultiPart, Outcome, Rule, RuleSnapshot, ScanAI } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
 // ---------- analysis ----------
@@ -317,16 +319,138 @@ export function OutcomeView({
   compact,
   actions,
 }: {
-  outcome: Extract<Outcome, { kind: "result" | "not_found" }>
+  outcome: Extract<Outcome, { kind: "result" | "not_found" | "multi" }>
   image: string | null
   corrected?: boolean
   compact?: boolean
   actions?: React.ReactNode
 }) {
+  if (outcome.kind === "multi") {
+    return <MultiResultView parts={outcome.parts} image={image} compact={compact} actions={actions} />
+  }
   if (outcome.kind === "result") {
     return <ResultCard ai={outcome.ai} rule={outcome.rule} category={outcome.category} image={image} corrected={corrected} compact={compact} actions={actions} />
   }
   return <NotFoundCard item={outcome.ai?.item} reason={outcome.reason} compact={compact} actions={actions} />
+}
+
+// ---------- multi-item ----------
+
+const UNSORTED_COLOR = "#9AA0A6"
+
+export function partColor(p: MultiPart) {
+  return p.outcome.kind === "result" ? p.outcome.category.color : UNSORTED_COLOR
+}
+
+/** Per-item thumbnails cut from the photo, in part order (null until ready or without a box). */
+export function usePartCrops(image: string | null, parts: MultiPart[]) {
+  const [crops, setCrops] = useState<(string | null)[]>([])
+  useEffect(() => {
+    let alive = true
+    setCrops([])
+    if (!image) return
+    Promise.all(parts.map((p) => (p.box ? cropThumbnail(image, p.box).catch(() => null) : null))).then((c) => alive && setCrops(c))
+    return () => {
+      alive = false
+    }
+  }, [image, parts])
+  return crops
+}
+
+interface PartGroup {
+  key: string
+  label: string
+  bin: string
+  color: string
+  items: { part: MultiPart; n: number }[]
+}
+
+function groupParts(parts: MultiPart[]): PartGroup[] {
+  const groups = new Map<string, PartGroup>()
+  parts.forEach((part, i) => {
+    const cat = part.outcome.kind === "result" ? part.outcome.category : null
+    const key = cat?.id ?? "unsorted"
+    if (!groups.has(key)) {
+      groups.set(key, {
+        key,
+        label: cat?.label ?? "Not sorted",
+        bin: cat?.bin ?? "Check with housekeeping",
+        color: partColor(part),
+        items: [],
+      })
+    }
+    groups.get(key)!.items.push({ part, n: i + 1 })
+  })
+  const order = [...guide.categories.map((c) => c.id), "unsorted"]
+  return [...groups.values()].sort((a, b) => order.indexOf(a.key) - order.indexOf(b.key))
+}
+
+function NumberDot({ n, color, size = 24 }: { n: number; color: string; size?: number }) {
+  return (
+    <span className="grid shrink-0 place-items-center rounded-full text-xs font-bold text-white" style={{ backgroundColor: color, width: size, height: size }}>
+      {n}
+    </span>
+  )
+}
+
+/** Two or more items in one scan: the photo masked by bin colour, then the items grouped by bin. */
+export function MultiResultView({ parts, image, compact, actions }: { parts: MultiPart[]; image: string | null; compact?: boolean; actions?: React.ReactNode }) {
+  const crops = usePartCrops(image, parts)
+  const groups = useMemo(() => groupParts(parts), [parts])
+  const bins = groups.filter((g) => g.key !== "unsorted").length
+  return (
+    <div className="ww-fade-up space-y-4">
+      <div className={cn("glass space-y-4", compact ? "p-4" : "p-5")}>
+        <div>
+          <h2 className={cn("display leading-tight", compact ? "text-xl" : "text-3xl")}>{parts.length} items found</h2>
+          <p className="mt-0.5 text-sm text-sub">
+            Sorted into {bins} {bins === 1 ? "bin" : "bins"}. Each colour is a different bin.
+          </p>
+        </div>
+        {image && <SegmentedPhoto src={image} parts={parts.map((p, i) => ({ box: p.box, color: partColor(p), n: i + 1, label: p.ai.item }))} />}
+        <div className="flex flex-wrap gap-2">
+          {groups.map((g) => (
+            <span key={g.key} className="tile inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-ink">
+              <span className="h-3 w-3 rounded-full" style={{ backgroundColor: g.color }} />
+              {g.label} · {g.items.length}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className={cn("space-y-4", !compact && "lg:grid lg:grid-cols-2 lg:items-start lg:gap-4 lg:space-y-0")}>
+        {groups.map((g) => (
+          <section key={g.key} className={cn("glass space-y-4 border-l-[6px]", compact ? "p-4" : "p-5")} style={{ borderLeftColor: g.color }}>
+            <header>
+              <h3 className="text-lg font-bold text-ink">{g.label}</h3>
+              <p className="text-sm text-sub">{g.bin}</p>
+            </header>
+            {g.items.map(({ part, n }) => (
+              <div key={n} className="space-y-3 border-t border-green/10 pt-3 first:border-t-0 first:pt-0">
+                <div className="flex items-center gap-3">
+                  <NumberDot n={n} color={g.color} />
+                  <Thumb src={crops[n - 1] ?? null} size={48} className="rounded-[10px]" />
+                  <div className="min-w-0">
+                    <p className="font-semibold capitalize text-ink">{part.ai.item}</p>
+                    {part.ai.material && <p className="text-xs text-sub">{part.ai.material}</p>}
+                  </div>
+                </div>
+                {part.outcome.kind === "result" ? (
+                  <>
+                    <PrepSteps steps={part.outcome.rule.preparation} compact />
+                    <EvidenceBox ruleId={part.outcome.rule.rule_id} sourceText={part.outcome.rule.source_text} compact />
+                  </>
+                ) : (
+                  <p className="tile px-4 py-3 text-sm text-ink">No disposal rule for this one. Ask the campus housekeeping/sustainability team.</p>
+                )}
+              </div>
+            ))}
+          </section>
+        ))}
+      </div>
+      {actions && <div className={cn("glass", compact ? "p-4" : "p-5")}>{actions}</div>}
+    </div>
+  )
 }
 
 // ---------- correction ----------

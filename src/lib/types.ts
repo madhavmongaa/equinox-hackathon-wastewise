@@ -46,6 +46,35 @@ export interface ScanAI {
   /** The model's own rule, filled only when the guide has no matching rule. */
   generated_rule?: GeneratedRule | null
   reasoning_note: string
+  /** One entry per item when the photo or description holds two or more items. */
+  items?: DetectedItemAI[]
+}
+
+export interface DetectedItemAI {
+  item: string
+  material: string
+  confidence: Confidence
+  /** [ymin, xmin, ymax, xmax], normalised to 0–1000; null for text-only scans */
+  box_2d: number[] | null
+  rule_found: boolean
+  rule_id: string | null
+  generated_rule: GeneratedRule | null
+}
+
+/** Box as fractions (0–1) of the image size. */
+export interface Box {
+  top: number
+  left: number
+  bottom: number
+  right: number
+}
+
+export type SingleOutcome = Extract<Outcome, { kind: "result" | "not_found" }>
+
+export interface MultiPart {
+  ai: ScanAI
+  outcome: SingleOutcome
+  box: Box | null
 }
 
 export interface GeneratedRule {
@@ -74,6 +103,7 @@ export type Outcome =
   | { kind: "clarify"; ai: ScanAI; question: string; options: string[] }
   | { kind: "result"; ai: ScanAI; rule: Rule; category: Category }
   | { kind: "not_found"; ai: ScanAI | null; reason: "no_rule" | "unclear" }
+  | { kind: "multi"; ai: ScanAI; parts: MultiPart[] }
 
 export interface RuleSnapshot {
   rule_id: string

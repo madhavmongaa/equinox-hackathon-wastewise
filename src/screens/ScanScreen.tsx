@@ -47,7 +47,7 @@ export function ScanScreen({ start }: { start?: ScanStart }) {
       setOutcome(out)
       // the AI's own identification (after any clarifications), kept separately from a correction
       if (!next.correctedItem && out.ai) setOriginalAi(out.ai)
-      if (out.kind === "result") playScanSuccessSound()
+      if (out.kind === "result" || out.kind === "multi") playScanSuccessSound()
       setStage(out.kind === "clarify" ? "clarify" : "result")
     } catch (err) {
       if (id !== runId.current) return
@@ -191,7 +191,7 @@ export function ScanScreen({ start }: { start?: ScanStart }) {
                   <Camera size={18} /> Try a clearer photo
                 </Button>
               )}
-              <ResultActions busy={saving} onGotIt={gotIt} onCorrect={() => setCorrecting(true)} onScanAnother={reset} onScanAgain={scanAgain} />
+              <ResultActions busy={saving} onGotIt={gotIt} onCorrect={outcome.kind === "multi" ? undefined : () => setCorrecting(true)} onScanAnother={reset} onScanAgain={scanAgain} />
             </div>
           }
         />

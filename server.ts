@@ -36,6 +36,7 @@ Rules you must follow:
 - If the photo is blurry, partly hidden, or the material can't be determined (e.g. paper cup vs plastic-lined cup, single-material film vs multilayer wrapper, clean vs greasy), set needs_clarification to true and ask ONE short, specific question with 2–4 answer options. Do not guess.
 - If you can identify the item but no rule in the guide matches it, set rule_found to false, leave rule_id null, and write your own rule in generated_rule: pick the best category_id from the guide's categories using standard Indian campus waste-segregation practice, give 1–4 short preparation steps, and a one- or two-sentence explanation of why it goes in that bin. Never leave an identified item without a rule.
 - If the image doesn't show a waste item at all, say so in the item field and set needs_clarification to true.
+- If the photo or description contains TWO OR MORE distinct waste items, list every item in items, one entry each, and apply the same guide / generated_rule logic to each item separately. For a photo, give box_2d as [ymin, xmin, ymax, xmax] normalised to 0-1000. Make each box tight around its own item only. For text-only input, set box_2d to null. With two or more items, set the top-level item to a short summary such as "3 items", fill the other top-level fields for the most prominent item, and only set needs_clarification when the whole photo is unusable. When there is just one item, return an empty items array.
 - Respond ONLY with JSON matching the response schema.
 
 --- CAMPUS WASTE GUIDE ---
@@ -64,6 +65,20 @@ const generatedRuleSchema: Schema = {
   required: ["category_id", "preparation", "explanation"],
 }
 
+const detectedItemSchema: Schema = {
+  type: Type.OBJECT,
+  properties: {
+    item: { type: Type.STRING },
+    material: { type: Type.STRING },
+    confidence: { type: Type.STRING, enum: ["high", "medium", "low"] },
+    box_2d: { type: Type.ARRAY, items: { type: Type.INTEGER }, nullable: true },
+    rule_found: { type: Type.BOOLEAN },
+    rule_id: { type: Type.STRING, nullable: true },
+    generated_rule: generatedRuleSchema,
+  },
+  required: ["item", "material", "confidence", "box_2d", "rule_found", "rule_id", "generated_rule"],
+}
+
 const scanSchema: Schema = {
   type: Type.OBJECT,
   properties: {
@@ -77,6 +92,7 @@ const scanSchema: Schema = {
     rule_id: { type: Type.STRING, nullable: true },
     generated_rule: generatedRuleSchema,
     reasoning_note: { type: Type.STRING },
+    items: { type: Type.ARRAY, items: detectedItemSchema },
   },
   required: [
     "item",
@@ -89,6 +105,7 @@ const scanSchema: Schema = {
     "rule_id",
     "generated_rule",
     "reasoning_note",
+    "items",
   ],
 }
 

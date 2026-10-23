@@ -4,8 +4,9 @@ import { fetchMyRank } from "@/lib/leaderboard"
 import { loadHistory, saveHistory } from "@/lib/history"
 import { levelFor, type Level } from "@/lib/levels"
 import type { ScoredAction } from "@/lib/points"
+import { cropThumbnail } from "@/lib/segment"
 import { profileStore, type AwardOutcome, type SettingsPatch, type StoredProfile } from "@/lib/store"
-import type { HistoryEntry, ImageInput, Outcome, ScanAI, ScanInput } from "@/lib/types"
+import type { HistoryEntry, ImageInput, Outcome, ScanAI, ScanInput, SingleOutcome } from "@/lib/types"
 import { uuid } from "@/lib/utils"
 
 export interface ScanStart {
@@ -239,8 +240,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [toast, updateHistory, weeklyRank]
   )
 
-  const finishScan = useCallback(
-    async ({ input, outcome, originalAi }: FinishArgs) => {
+  const finishOne = useCallback(
+    async ({ input, outcome, originalAi }: { input: ScanInput; outcome: SingleOutcome; originalAi: ScanAI | null }) => {
       const entry = buildHistoryEntry({ input, outcome, originalAi, points: 0 })
       updateHistory((list) => [entry, ...list])
       const action: ScoredAction = {
@@ -261,6 +262,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return applyAward({ action, entryId: entry.id })
     },
     [applyAward, toast, uid, updateHistory]
+  )
+
+  /** Saves a finished scan. A multi-item scan becomes one history entry (and award) per item. */
+  const finishScan = useCallback(
+    async ({ input, outcome, originalAi }: FinishArgs) => {
+      if (outcome.kind === "clarify") return null
+      if (outcome.kind !== "multi") return finishOne({ input, outcome, originalAi })
+      let last: AwardOutcome | null = null
+      for (const part of outcome.parts) {
+        let image = input.image
+        if (image && part.box) {
+          const thumbnail = await cropThumbnail(image.dataUrl, part.box).catch(() => image!.thumbnail)
+          image = { ...image, thumbnail }
+        }
+        last = await finishOne({ input: { ...input, image }, outcome: part.outcome, originalAi: part.ai })
+      }
+      return last
+    },
+    [finishOne]
   )
 
   const join = useCallback(

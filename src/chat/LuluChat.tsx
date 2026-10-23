@@ -28,7 +28,7 @@ const OFF_TOPIC = "I'm best at waste sorting! Want to scan something?"
 const QUIZ = "The Eco Quiz is coming soon 🧠 For now, show me something to sort!"
 
 type Card =
-  | { type: "outcome"; outcome: Extract<Outcome, { kind: "result" | "not_found" }>; input: ScanInput; originalAi: ScanAI | null; saved: boolean }
+  | { type: "outcome"; outcome: Exclude<Outcome, { kind: "clarify" }>; input: ScanInput; originalAi: ScanAI | null; saved: boolean }
   | { type: "clarify"; outcome: Extract<Outcome, { kind: "clarify" }>; input: ScanInput; answered: boolean }
   | { type: "history" }
   | { type: "stats" }
