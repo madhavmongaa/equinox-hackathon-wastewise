@@ -24,7 +24,7 @@ import { useApp } from "@/state/AppContext"
 import { useCapture } from "@/state/capture"
 
 const WELCOME =
-  "Hi! I'm Lulu 👋 Show me any item and I'll tell you which bin it goes in — using our campus waste guide. Scan it, upload a photo, or just describe it."
+  "Hi! I'm Lulu 👋 Show me any item and I'll tell you which bin it goes in, using our campus waste guide. Scan it, upload a photo, or just describe it. You can also ask me anything else."
 const EXPLAIN =
   "I identify the item, then look it up in the Zenith campus waste guide. If the guide has a rule for it, I show you that exact rule. If it doesn't, I suggest a bin myself and mark it as AI-suggested. If I'm not sure what the item is, I ask you first."
 const READ_ALOUD_KEY = "wastewise.readAloud.v1"
@@ -36,7 +36,14 @@ function speechFor(text: string, card?: Card) {
   return text
 }
 
-const OFF_TOPIC = "I'm best at waste sorting! Want to scan something?"
+/** Puts inline " - item - item" lists on their own lines (Gemini sometimes runs them together). */
+function tidyBullets(text: string) {
+  if (text.includes("\n- ")) return text
+  const inline = text.match(/\s-\s(?=\p{L})/gu)
+  return inline && inline.length >= 2 ? text.replace(/:?\s+-\s(?=\p{L})/gu, (m) => (m.startsWith(":") ? ":\n- " : "\n- ")) : text
+}
+
+const OFF_TOPIC = "I didn't quite catch that. Ask me anything, or show me something to sort!"
 
 type Card =
   | { type: "outcome"; outcome: Exclude<Outcome, { kind: "clarify" }>; input: ScanInput; originalAi: ScanAI | null; saved: boolean }
@@ -193,6 +200,9 @@ export function LuluChat() {
           const c = getCategory(ai.category_id)
           return c ? say(ai.lulu_message, "happy", { type: "category", categoryId: c.id }) : say(ai.lulu_message, settle)
         }
+        case "general_question":
+          // any other question: Lulu's own answer, no card
+          return ai.lulu_message.trim() ? say(tidyBullets(ai.lulu_message.trim()), settle === "sorry" ? "idle" : settle) : say(OFF_TOPIC, "idle")
         default:
           return say(OFF_TOPIC, "idle")
       }
@@ -301,7 +311,7 @@ export function LuluChat() {
                 <LuluMascot mood="idle" size={24} />
               </span>
               <div className="min-w-0 flex-1 space-y-2">
-                {m.text && <p className="glass w-fit max-w-full rounded-[20px] rounded-tl-md px-4 py-2.5 text-sm">{m.text}</p>}
+                {m.text && <p className="glass w-fit max-w-full rounded-[20px] rounded-tl-md px-4 py-2.5 text-sm leading-relaxed whitespace-pre-line">{m.text}</p>}
                 {m.card && (
                   <ChatCard
                     card={m.card}
@@ -378,7 +388,7 @@ export function LuluChat() {
           ref={inputRef}
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder={mic.listening ? "Listening…" : "Ask Lulu or describe an item…"}
+          placeholder={mic.listening ? "Listening…" : "Ask Lulu anything or describe an item…"}
           className="field h-11 min-w-0 flex-1 px-4 text-sm"
         />
         <MicButton listening={mic.listening} onClick={mic.toggle} disabled={!!typing && !mic.listening} />
