@@ -1,340 +1,262 @@
-import React, { useState } from 'react';
-import {
-  Truck,
-  CheckCircle2,
-  Clock,
-  MapPin,
-  Upload,
-  AlertTriangle,
-  RotateCcw,
-  Sparkles,
-  ArrowRight,
-  Shield,
-  Send,
-} from 'lucide-react';
-import type { DumpReport } from './types';
-import { DumpPhoto } from './DumpPhoto';
+// Cleanup queue: send a crew to a reported dump, then close it with an after photo.
+// Reworked from Kunwar's sweeper queue to use the app's own cards and colours.
+
+import { useRef, useState } from "react"
+import { Camera, CheckCircle2, MapPin, Send, Truck, X } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { BeforeAfter, StatusSteps } from "@/dumps/BeforeAfter"
+import { DumpPhoto } from "@/dumps/DumpPhoto"
+import { SEVERITY_COLOR } from "@/dumps/severity"
+import type { DumpReport, DumpStatus } from "@/dumps/types"
+import { relativeTime } from "@/lib/dates"
+import { ImageError, prepareImageFile } from "@/lib/image"
+import { formatKg } from "@/lib/impact"
+import { cn } from "@/lib/utils"
 
 interface SweeperQueueProps {
-  dumps: DumpReport[];
-  onUpdateStatus: (
-    id: string,
-    status: any,
-    assignedTeam?: string,
-    sweeperNotes?: string,
-    afterImageUrl?: string,
-    recycledKg?: number
-  ) => void;
-  onOpenGovernmentModal: (dump: DumpReport) => void;
+  dumps: DumpReport[]
+  onUpdateStatus: (id: string, status: DumpStatus, assignedTeam?: string, sweeperNotes?: string, afterImageUrl?: string, recycledKg?: number) => void
+  onOpenGovernmentModal: (dump: DumpReport) => void
 }
 
-export const SweeperQueue: React.FC<SweeperQueueProps> = ({
-  dumps,
-  onUpdateStatus,
-  onOpenGovernmentModal,
-}) => {
-  const [activeTab, setActiveTab] = useState<'pending' | 'in_progress' | 'completed'>('pending');
-  const [selectedDump, setSelectedDump] = useState<DumpReport | null>(null);
+type Stage = "waiting" | "working" | "cleaned"
 
-  // Field action form state
-  const [assignedCrew, setAssignedCrew] = useState('Municipal Sweeper Crew Alpha #2');
-  const [crewNotes, setCrewNotes] = useState('');
-  const [afterImage, setAfterImage] = useState<string | null>(null);
-  const [recycledKg, setRecycledKg] = useState<number>(50);
+const STAGES: { id: Stage; label: string; match: (d: DumpReport) => boolean }[] = [
+  { id: "waiting", label: "Waiting", match: (d) => d.status === "reported" || d.status === "dispatched_to_government" },
+  { id: "working", label: "Crew on it", match: (d) => d.status === "in_progress" || d.status === "assigned_sweeper" },
+  { id: "cleaned", label: "Cleaned", match: (d) => d.status === "cleaned" },
+]
 
-  const pendingDumps = dumps.filter((d) => d.status === 'reported' || d.status === 'dispatched_to_government');
-  const inProgressDumps = dumps.filter((d) => d.status === 'in_progress' || d.status === 'assigned_sweeper');
-  const completedDumps = dumps.filter((d) => d.status === 'cleaned');
+const DEFAULT_CREW = "Campus Sweeper Crew A"
 
-  const currentList =
-    activeTab === 'pending' ? pendingDumps : activeTab === 'in_progress' ? inProgressDumps : completedDumps;
-
-  const handleStartSweep = (dump: DumpReport) => {
-    onUpdateStatus(
-      dump.id,
-      'in_progress',
-      assignedCrew,
-      'Crew arrived on site; hydraulic compacting and raking in progress.'
-    );
-  };
-
-  const handleCompleteSweep = (dump: DumpReport) => {
-    // only the sweeper's own photo counts as after-cleanup proof
-    const afterProof = afterImage || undefined;
-
-    onUpdateStatus(
-      dump.id,
-      'cleaned',
-      assignedCrew,
-      crewNotes || 'Area thoroughly sanitized, waste collected and sent to municipal recycling/compost center.',
-      afterProof,
-      recycledKg || dump.estimatedWeightKg
-    );
-    setSelectedDump(null);
-  };
+export function SweeperQueue({ dumps, onUpdateStatus, onOpenGovernmentModal }: SweeperQueueProps) {
+  const [stage, setStage] = useState<Stage>("waiting")
+  const [closing, setClosing] = useState<DumpReport | null>(null)
+  const list = dumps.filter(STAGES.find((s) => s.id === stage)!.match)
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200">
-        <div>
-          <div className="flex items-center gap-2">
-            <Truck className="w-6 h-6 text-amber-600" />
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-              Municipal Sweeper Field Operations
-            </h1>
-          </div>
-          <p className="text-sm text-slate-500 mt-1">
-            Task dispatch, heavy machinery routing, and before/after cleanup verification for city sanitarians.
-          </p>
-        </div>
-
-        {/* Sweeper Crew Badge */}
-        <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-xs">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-          <div className="text-xs">
-            <span className="text-slate-400 block font-mono uppercase text-[10px]">Active Sweeper Unit</span>
-            <span className="font-bold text-slate-800">{assignedCrew}</span>
-          </div>
-        </div>
+    <div className="space-y-4">
+      <div className="pill-glass grid grid-cols-3 p-1" role="tablist" aria-label="Cleanup stage">
+        {STAGES.map((s) => {
+          const n = dumps.filter(s.match).length
+          return (
+            <button
+              key={s.id}
+              role="tab"
+              aria-selected={stage === s.id}
+              onClick={() => setStage(s.id)}
+              className={cn(
+                "flex h-10 items-center justify-center gap-1.5 rounded-full text-sm font-semibold transition-colors",
+                stage === s.id ? "bg-mint text-green shadow-soft" : "text-sub"
+              )}
+            >
+              {s.label}
+              <span className="rounded-full bg-card px-1.5 text-[11px] tabular-nums">{n}</span>
+            </button>
+          )
+        })}
       </div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
-        <button
-          onClick={() => setActiveTab('pending')}
-          className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
-            activeTab === 'pending'
-              ? 'bg-amber-100 text-amber-900 shadow-xs'
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          <span>Priority Queue</span>
-          <span className="font-mono bg-white/70 px-1.5 py-0.2 rounded text-[11px]">
-            {pendingDumps.length}
-          </span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('in_progress')}
-          className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
-            activeTab === 'in_progress'
-              ? 'bg-blue-100 text-blue-900 shadow-xs'
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          <span>Crews In Progress</span>
-          <span className="font-mono bg-white/70 px-1.5 py-0.2 rounded text-[11px]">
-            {inProgressDumps.length}
-          </span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('completed')}
-          className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
-            activeTab === 'completed'
-              ? 'bg-emerald-100 text-emerald-900 shadow-xs'
-              : 'text-slate-600 hover:text-slate-900'
-          }`}
-        >
-          <span>Cleaned & Verified</span>
-          <span className="font-mono bg-white/70 px-1.5 py-0.2 rounded text-[11px]">
-            {completedDumps.length}
-          </span>
-        </button>
-      </div>
-
-      {/* Grid of Task Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {currentList.map((dump) => (
-          <div
-            key={dump.id}
-            className={`bg-white rounded-2xl border shadow-xs flex flex-col overflow-hidden transition-all hover:shadow-md ${
-              dump.severity === 'critical' ? 'border-red-200' : 'border-slate-200'
-            }`}
-          >
-            {/* Image & Status Pill */}
-            <div className="relative h-44 bg-slate-100">
-              <DumpPhoto
-                src={dump.imageUrl}
-                alt={dump.title}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute top-2 left-2 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-white bg-black/60 backdrop-blur-xs">
-                {dump.severity} priority · {dump.estimatedWeightKg} kg
-              </div>
-              {dump.governmentDispatch && (
-                <div className="absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] font-mono font-bold text-white bg-blue-600 shadow-xs">
-                  Gov #{dump.governmentDispatch.ticketNumber}
-                </div>
-              )}
-            </div>
-
-            {/* Content */}
-            <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-              <div className="space-y-2">
-                <h3 className="text-sm font-bold text-slate-900 leading-snug">
-                  {dump.title}
-                </h3>
-                <p className="text-xs text-slate-500 flex items-center gap-1">
-                  <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span className="truncate">{dump.location.address}</span>
-                </p>
-
-                {/* Equipment & Risks */}
-                <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 space-y-1.5 text-xs">
-                  <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-semibold block">Required Machinery</span>
-                    <span className="text-slate-700 font-medium block truncate">
-                      {dump.recommendedEquipment.join(', ')}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-slate-400 uppercase font-semibold block">Primary Health Hazard</span>
-                    <span className="text-red-700 font-medium block truncate">
-                      {dump.healthRisks.join(', ')}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Cleaned Before/After verification view if completed */}
-              {dump.status === 'cleaned' && (
-                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl space-y-2 text-xs">
-                  <div className="flex items-center gap-1.5 text-emerald-900 font-bold">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    <span>Site Clearance Certified</span>
-                  </div>
-                  <p className="text-emerald-800 text-[11px]">
-                    {dump.sweeperCrew?.sweeperNotes || 'Area sanitized, debris transferred to recycling facility.'}
-                  </p>
-                  <div className="flex justify-between text-[11px] font-mono text-emerald-900 pt-1 border-t border-emerald-200/60">
-                    <span>Cleaned By: {dump.sweeperCrew?.assignedTeam}</span>
-                    <span>Recycled: {dump.sweeperCrew?.recycledKg || dump.estimatedWeightKg} kg</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Card Actions */}
-              <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
-                {dump.status !== 'cleaned' && (
-                  <button
-                    onClick={() => onOpenGovernmentModal(dump)}
-                    className="px-2.5 py-1.5 text-xs font-medium text-blue-700 hover:text-blue-900 flex items-center gap-1"
-                  >
-                    <Send className="w-3 h-3" /> Report to Gov
-                  </button>
-                )}
-
-                {dump.status === 'reported' || dump.status === 'dispatched_to_government' ? (
-                  <button
-                    onClick={() => handleStartSweep(dump)}
-                    className="ml-auto px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1.5"
-                  >
-                    <Truck className="w-3.5 h-3.5" /> Deploy Sweeper Crew
-                  </button>
-                ) : dump.status === 'in_progress' ? (
-                  <button
-                    onClick={() => setSelectedDump(dump)}
-                    className="ml-auto px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1.5"
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Complete Cleanup & Verify
-                  </button>
-                ) : (
-                  <span className="ml-auto text-xs font-mono font-semibold text-emerald-700">
-                    Verified Clean
+      {list.length === 0 ? (
+        <div className="glass flex flex-col items-center gap-2 px-6 py-12 text-center">
+          <Truck size={28} className="text-sub" />
+          <p className="font-semibold">{stage === "cleaned" ? "Nothing cleaned yet" : "Nothing here right now"}</p>
+          <p className="text-sm text-sub">{stage === "waiting" ? "New dump reports show up here." : "Dumps move here as crews work on them."}</p>
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {list.map((d) => (
+            <article key={d.id} className="glass flex flex-col overflow-hidden p-0">
+              {d.status === "cleaned" ? (
+                <BeforeAfter before={d.imageUrl} after={d.afterImageUrl} alt={d.title} className="h-44" />
+              ) : (
+                <div className="relative h-44 bg-mint">
+                  <DumpPhoto src={d.imageUrl} alt={d.title} className="h-full w-full object-cover" />
+                  <span className="absolute top-2 left-2 inline-flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-bold text-white capitalize">
+                    <span className="h-2 w-2 rounded-full" style={{ background: SEVERITY_COLOR[d.severity] }} />
+                    {d.severity} · {formatKg(d.estimatedWeightKg)}
                   </span>
+                  {d.governmentDispatch && (
+                    <span className="absolute top-2 right-2 rounded-full bg-card px-2.5 py-1 text-[11px] font-semibold text-ink shadow-soft">
+                      #{d.governmentDispatch.ticketNumber}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              <div className="flex flex-1 flex-col gap-3 p-4">
+                <div>
+                  <h3 className="line-clamp-2 font-semibold leading-snug">{d.title}</h3>
+                  <p className="mt-1 flex items-center gap-1 text-xs text-sub">
+                    <MapPin size={13} className="shrink-0" />
+                    <span className="truncate">{d.location.address ?? "Location pinned on the map"}</span>
+                  </p>
+                </div>
+
+                <StatusSteps status={d.status} />
+
+                {d.status === "cleaned" ? (
+                  <p className="tile px-3 py-2 text-xs text-sub">
+                    <span className="font-semibold text-ink">{d.sweeperCrew?.assignedTeam ?? "Crew"}</span> cleared{" "}
+                    {formatKg(d.sweeperCrew?.recycledKg ?? d.estimatedWeightKg)}
+                    {d.sweeperCrew?.cleanedAt && ` · ${relativeTime(d.sweeperCrew.cleanedAt)}`}
+                    {d.sweeperCrew?.sweeperNotes && <span className="mt-1 block">{d.sweeperCrew.sweeperNotes}</span>}
+                  </p>
+                ) : (
+                  d.recommendedEquipment.length > 0 && <p className="line-clamp-1 text-xs text-sub">Needs: {d.recommendedEquipment.join(", ")}</p>
+                )}
+
+                {d.status !== "cleaned" && (
+                  <div className="mt-auto flex items-center gap-2 pt-1">
+                    {!d.governmentDispatch && (
+                      <Button variant="ghost" size="sm" className="h-9 px-3" onClick={() => onOpenGovernmentModal(d)}>
+                        <Send size={14} /> Report to council
+                      </Button>
+                    )}
+                    {stage === "waiting" ? (
+                      <Button
+                        size="sm"
+                        className="ml-auto h-9"
+                        onClick={() => onUpdateStatus(d.id, "in_progress", DEFAULT_CREW, "Crew on site, clearing the dump.")}
+                      >
+                        <Truck size={15} /> Send a crew
+                      </Button>
+                    ) : (
+                      <Button size="sm" className="ml-auto h-9" onClick={() => setClosing(d)}>
+                        <CheckCircle2 size={15} /> Mark cleaned
+                      </Button>
+                    )}
+                  </div>
                 )}
               </div>
-            </div>
-          </div>
-        ))}
-
-        {currentList.length === 0 && (
-          <div className="col-span-full py-16 text-center bg-white rounded-2xl border border-slate-200 text-slate-400 text-xs">
-            <Truck className="w-8 h-8 mx-auto text-slate-300 mb-2" />
-            <p className="font-semibold text-slate-700 text-sm">No dumps currently in this sweeper stage.</p>
-          </div>
-        )}
-      </div>
-
-      {/* Completion Modal: Upload After Photo & Sign Off */}
-      {selectedDump && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full p-6 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-              <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                Certify Roadside Cleanup
-              </h3>
-              <button
-                onClick={() => setSelectedDump(null)}
-                className="text-slate-400 hover:text-slate-600"
-              >
-                &times;
-              </button>
-            </div>
-
-            <div className="text-xs text-slate-600">
-              Confirm site clearance for <b className="text-slate-900">{selectedDump.title}</b> at {selectedDump.location.address}.
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">
-                  Sanitation Crew / Team
-                </label>
-                <input
-                  type="text"
-                  value={assignedCrew}
-                  onChange={(e) => setAssignedCrew(e.target.value)}
-                  className="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg"
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">
-                  Recycled / Diverted Waste (kg)
-                </label>
-                <input
-                  type="number"
-                  value={recycledKg}
-                  onChange={(e) => setRecycledKg(parseInt(e.target.value, 10))}
-                  className="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">
-                  Sweeper Crew Clearance Report & Sanitization Notes
-                </label>
-                <textarea
-                  rows={2}
-                  value={crewNotes}
-                  onChange={(e) => setCrewNotes(e.target.value)}
-                  placeholder="e.g. Street curb vacuumed, debris loaded into compactor truck #7, bio-disinfectant applied."
-                  className="w-full px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
-              <button
-                onClick={() => setSelectedDump(null)}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleCompleteSweep(selectedDump)}
-                className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs"
-              >
-                Mark Area Cleaned & Close Ticket
-              </button>
-            </div>
-          </div>
+            </article>
+          ))}
         </div>
       )}
+
+      {closing && (
+        <CloseDumpSheet
+          dump={closing}
+          onCancel={() => setClosing(null)}
+          onDone={(crew, notes, after, kg) => {
+            onUpdateStatus(closing.id, "cleaned", crew, notes, after, kg)
+            setClosing(null)
+            setStage("cleaned")
+          }}
+        />
+      )}
     </div>
-  );
-};
+  )
+}
+
+/** Close a dump: after photo (optional but encouraged), crew, kg recovered, notes. */
+function CloseDumpSheet({
+  dump,
+  onCancel,
+  onDone,
+}: {
+  dump: DumpReport
+  onCancel: () => void
+  onDone: (crew: string, notes: string, after: string | undefined, kg: number) => void
+}) {
+  const [crew, setCrew] = useState(dump.sweeperCrew?.assignedTeam ?? DEFAULT_CREW)
+  const [kg, setKg] = useState(String(dump.estimatedWeightKg))
+  const [notes, setNotes] = useState("")
+  const [after, setAfter] = useState<string | null>(null)
+  const [photoError, setPhotoError] = useState<string | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  const pickPhoto = async (file: File | undefined) => {
+    if (!file) return
+    setPhotoError(null)
+    try {
+      setAfter((await prepareImageFile(file)).dataUrl)
+    } catch (err) {
+      setPhotoError(err instanceof ImageError ? err.message : "Couldn't read that photo. Try another one.")
+    }
+  }
+
+  const kgNumber = Math.max(0, Number(kg) || 0)
+
+  return (
+    <div
+      className="fixed inset-0 z-[80] flex items-end justify-center bg-black/50 p-0 backdrop-blur-sm sm:items-center sm:p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="close-dump-title"
+    >
+      <div className="ww-sheet sky-sheet max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-[24px] p-5 sm:rounded-[24px]">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div>
+            <h3 id="close-dump-title" className="display text-xl">
+              Mark as cleaned
+            </h3>
+            <p className="mt-0.5 line-clamp-1 text-sm text-sub">{dump.title}</p>
+          </div>
+          <Button variant="secondary" size="icon" aria-label="Close" onClick={onCancel}>
+            <X size={18} />
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <figure>
+            <DumpPhoto src={dump.imageUrl} alt={`${dump.title}, before`} className="h-32 w-full rounded-[14px] object-cover" />
+            <figcaption className="mt-1 text-xs text-sub">Before</figcaption>
+          </figure>
+          <figure>
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className={cn(
+                "ww-press grid h-32 w-full place-items-center overflow-hidden rounded-[14px]",
+                after ? "p-0" : "border-2 border-dashed border-[var(--ww-line-strong)] bg-card text-sub hover:text-green"
+              )}
+              aria-label={after ? "Change the after photo" : "Add an after photo"}
+            >
+              {after ? (
+                <img src={after} alt="After cleanup" className="h-full w-full object-cover" />
+              ) : (
+                <span className="flex flex-col items-center gap-1 text-sm font-semibold">
+                  <Camera size={22} /> Add after photo
+                </span>
+              )}
+            </button>
+            <figcaption className="mt-1 text-xs text-sub">After</figcaption>
+          </figure>
+        </div>
+        <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => pickPhoto(e.target.files?.[0])} />
+        {photoError && <p className="mt-2 text-sm text-[#C0261B]">{photoError}</p>}
+
+        <div className="mt-4 space-y-3">
+          <label className="block">
+            <span className="mb-1 block text-sm font-semibold">Crew</span>
+            <input value={crew} onChange={(e) => setCrew(e.target.value)} className="field h-11 w-full px-4 text-sm" />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-sm font-semibold">Waste recovered (kg)</span>
+            <input value={kg} onChange={(e) => setKg(e.target.value)} inputMode="numeric" className="field h-11 w-full px-4 text-sm tabular-nums" />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-sm font-semibold">Notes (optional)</span>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={2}
+              placeholder="e.g. Cleared and swept, sent to the recycling centre"
+              className="field w-full rounded-[16px] px-4 py-2.5 text-sm"
+            />
+          </label>
+        </div>
+
+        <div className="mt-5 flex items-center justify-end gap-2">
+          <Button variant="secondary" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button onClick={() => onDone(crew.trim() || DEFAULT_CREW, notes.trim() || "Site cleared.", after ?? undefined, kgNumber)}>
+            <CheckCircle2 size={18} /> {after ? "Close with photo" : "Close without photo"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}

@@ -12,6 +12,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import type { DumpReport, WasteCategory, DumpSeverity, AIDumpAnalysisResult } from './types';
+import { useApp } from '@/state/AppContext';
 
 interface SnapReportModalProps {
   isOpen: boolean;
@@ -51,7 +52,9 @@ export const SnapReportModal: React.FC<SnapReportModalProps> = ({
   const [categories, setCategories] = useState<WasteCategory[]>(['plastic', 'mixed']);
   const [estimatedKg, setEstimatedKg] = useState<number>(75);
   const [hazardScore, setHazardScore] = useState<number>(7);
-  const [citizenName, setCitizenName] = useState('Kunwar Juneja');
+  const { profile } = useApp();
+  // reported under the leaderboard nickname, if there is one
+  const [citizenName, setCitizenName] = useState(profile?.displayName ?? 'Campus student');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 

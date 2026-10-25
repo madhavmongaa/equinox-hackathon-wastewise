@@ -11,6 +11,8 @@ export const POINTS = {
   correction: 5,
   firstScanOfDay: 5,
   streak7: 25,
+  dumpReport: 10,
+  challenge: 25,
 } as const
 
 export const DAILY_SCAN_LIMIT = 20
@@ -33,7 +35,7 @@ export type Blocked = "daily_limit" | "duplicate" | null
 /** One Firestore write: at most 25 points each (matches the security rules). */
 export interface AwardWrite {
   amount: number
-  stats?: Partial<Pick<Profile, "totalScans" | "rulesFound" | "corrections" | "clarificationsAnswered" | "scoredToday">>
+  stats?: Partial<Pick<Profile, "totalScans" | "rulesFound" | "corrections" | "clarificationsAnswered" | "scoredToday" | "dumpsReported" | "challengesCompleted">>
   day?: Pick<Profile, "streakDays" | "longestStreak" | "lastActiveDate" | "scoredToday">
 }
 

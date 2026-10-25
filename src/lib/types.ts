@@ -148,4 +148,8 @@ export interface Profile {
   lastActiveDate: string
   scoredToday: number
   showOnLeaderboard: boolean
+  /** campus team (hostel/block) id, see src/lib/teams.ts */
+  team?: string
+  dumpsReported?: number
+  challengesCompleted?: number
 }

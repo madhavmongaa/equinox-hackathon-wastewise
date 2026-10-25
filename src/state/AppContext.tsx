@@ -3,7 +3,7 @@ import { buildHistoryEntry, itemKey } from "@/lib/flow"
 import { fetchMyRank } from "@/lib/leaderboard"
 import { loadHistory, saveHistory } from "@/lib/history"
 import { levelFor, type Level } from "@/lib/levels"
-import type { ScoredAction } from "@/lib/points"
+import type { AwardWrite, ScoredAction } from "@/lib/points"
 import { watchUser } from "@/lib/firebase"
 import { scanLocation, type LatLng } from "@/lib/location"
 import type { ScrapKind } from "@/lib/scrap"
@@ -29,6 +29,7 @@ export type Screen =
   | { name: "dumps"; dumpId?: string }
   | { name: "kabadiwala"; kinds?: ScrapKind[]; from?: string }
   | { name: "cleaning" }
+  | { name: "impact" }
   | { name: "account"; mode?: "create" | "signin" | "reset" }
 
 // Each screen has an address, so links like /app.html#leaderboard open it directly.
@@ -44,6 +45,7 @@ function screenFromHash(hash: string): { screen: Screen; chat: boolean } {
     case "dumps":
     case "kabadiwala":
     case "cleaning":
+    case "impact":
     case "account":
       if (name === "history" && id) return { screen: { name: "historyDetail", id: decodeURIComponent(id) }, chat: false }
       return { screen: { name }, chat: false }
@@ -89,6 +91,8 @@ interface AppState {
   uid: string | null
   authError: string | null
   finishScan: (args: FinishArgs) => Promise<AwardOutcome | null>
+  /** Points for a challenge or a dump report; false when there's no profile to add them to. */
+  awardBonus: (write: AwardWrite, label: string) => Promise<boolean>
   toasts: Toast[]
   toast: (text: string, tone?: ToastTone) => void
   chatOpen: boolean
@@ -313,6 +317,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [finishOne]
   )
 
+  const awardBonus = useCallback(
+    async (write: AwardWrite, label: string) => {
+      if (!profileRef.current) return false
+      try {
+        const { before, after } = await profileStore.bonus(write)
+        setPointsVersion((v) => v + 1)
+        if (write.amount > 0) toast(`+${write.amount} Eco Points · ${label} 🌱`, "points")
+        const lvBefore = levelFor(before.points)
+        const lvAfter = levelFor(after.points)
+        if (lvAfter.index > lvBefore.index) setLevelUp(lvAfter.level)
+        return true
+      } catch (err) {
+        console.error("Bonus points failed", err)
+        toast("Points couldn't be added right now.", "error")
+        return false
+      }
+    },
+    [toast]
+  )
+
   const join = useCallback(
     async (name: string, avatar: string, show: boolean) => {
       await profileStore.join(name, avatar, show)
@@ -341,6 +365,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       uid,
       authError,
       finishScan,
+      awardBonus,
       toasts,
       toast,
       chatOpen,
@@ -354,7 +379,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       dismissLevelUp: () => setLevelUp(null),
       pointsVersion,
     }),
-    [screen, navigate, history, clearHistory, profile, profileLoaded, uid, authError, finishScan, toasts, toast, chatOpen, setChatOpen, joinOpen, join, updateSettings, levelUp, pointsVersion]
+    [screen, navigate, history, clearHistory, profile, profileLoaded, uid, authError, finishScan, awardBonus, toasts, toast, chatOpen, setChatOpen, joinOpen, join, updateSettings, levelUp, pointsVersion]
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

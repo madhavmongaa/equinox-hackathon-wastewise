@@ -90,3 +90,36 @@ export async function fetchMyRank(tab: BoardTab, me: StoredProfile): Promise<num
   }
   return ahead.data().count + tiedAhead + 1
 }
+
+export interface TeamRow {
+  team: string
+  points: number
+  members: number
+}
+
+/**
+ * This week's team totals: everyone visible who scored this week, added up by team.
+ * Campus-sized, so one query of up to 500 profiles is enough.
+ */
+export function subscribeTeams(cb: (rows: TeamRow[]) => void, onError: (e: Error) => void) {
+  if (!db) return () => {}
+  const q = query(collection(db, "users"), ...baseConstraints("week"), limit(500))
+  return onSnapshot(
+    q,
+    (snap) => {
+      const totals: Record<string, TeamRow> = {}
+      snap.docs.forEach((d) => {
+        const p = d.data() as StoredProfile
+        if (!p.team) return
+        const row = (totals[p.team] ??= { team: p.team, points: 0, members: 0 })
+        row.points += p.weeklyPoints ?? 0
+        row.members++
+      })
+      cb(Object.values(totals).sort((a, b) => b.points - a.points))
+    },
+    (err) => {
+      console.error("Team leaderboard listener failed", err)
+      onError(err)
+    }
+  )
+}

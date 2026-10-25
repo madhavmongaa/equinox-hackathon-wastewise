@@ -17,7 +17,7 @@ import {
 import { db, ensureAnonymousUser, firebaseConfigured } from "@/lib/firebase"
 import { istWeekId } from "@/lib/dates"
 import { cleanNickname, nicknameKey, numberedNickname } from "@/lib/nickname"
-import { applyWrite, emptyProfile, planAward, rememberItem, type AwardEvent, type Blocked, type ScoredAction } from "@/lib/points"
+import { applyWrite, emptyProfile, planAward, rememberItem, type AwardEvent, type AwardWrite, type Blocked, type ScoredAction } from "@/lib/points"
 import type { Profile } from "@/lib/types"
 
 export interface StoredProfile extends Profile {
@@ -37,6 +37,7 @@ export interface SettingsPatch {
   displayName?: string
   avatar?: string
   showOnLeaderboard?: boolean
+  team?: string
 }
 
 export interface ProfileStore {
@@ -49,6 +50,8 @@ export interface ProfileStore {
   join(name: string, avatar: string, show: boolean): Promise<Profile>
   updateSettings(patch: SettingsPatch): Promise<void>
   award(action: ScoredAction): Promise<AwardOutcome>
+  /** Points for things other than scans (challenges, dump reports): at most 25 per call. */
+  bonus(write: AwardWrite): Promise<{ before: Profile; after: Profile }>
 }
 
 // ---------- Firestore ----------
@@ -143,30 +146,40 @@ function firestoreStore(): ProfileStore {
       const plan = planAward(before, action)
       let after: Profile = before
 
-      for (const w of plan.writes) {
-        after = await runTransaction(db!, async (tx) => {
-          const s = await tx.get(userRef())
-          const p = s.data() as StoredProfile
-          const week = istWeekId()
-          const weekChanged = p.weekId !== week
-          const update: Record<string, unknown> = { weekId: week }
-          if (w.amount > 0 || weekChanged) {
-            update.points = increment(w.amount)
-            update.weeklyPoints = weekChanged ? w.amount : increment(w.amount)
-          }
-          if (w.amount > 0) {
-            update.pointsReachedAt = serverTimestamp()
-            update.weeklyReachedAt = serverTimestamp()
-          }
-          if (w.stats) for (const [k, v] of Object.entries(w.stats)) if (v) update[k] = increment(v)
-          if (w.day) Object.assign(update, w.day)
-          tx.update(userRef(), update)
-          return applyWrite(p, w)
-        })
-      }
+      for (const w of plan.writes) after = await commit(w)
       if (!plan.blocked) rememberItem(action.itemKey)
       return { blocked: plan.blocked, events: plan.events, total: plan.total, before, after }
     },
+    async bonus(w) {
+      const snap = await getDoc(userRef())
+      if (!snap.exists()) throw new Error("Join the leaderboard first")
+      const before = snap.data() as StoredProfile
+      const after = await commit({ ...w, amount: Math.min(25, Math.max(0, w.amount)) })
+      return { before, after }
+    },
+  }
+
+  /** One points write, inside a transaction (the security rules allow +25 at most). */
+  function commit(w: AwardWrite) {
+    return runTransaction(db!, async (tx) => {
+      const s = await tx.get(userRef())
+      const p = s.data() as StoredProfile
+      const week = istWeekId()
+      const weekChanged = p.weekId !== week
+      const update: Record<string, unknown> = { weekId: week }
+      if (w.amount > 0 || weekChanged) {
+        update.points = increment(w.amount)
+        update.weeklyPoints = weekChanged ? w.amount : increment(w.amount)
+      }
+      if (w.amount > 0) {
+        update.pointsReachedAt = serverTimestamp()
+        update.weeklyReachedAt = serverTimestamp()
+      }
+      if (w.stats) for (const [k, v] of Object.entries(w.stats)) if (v) update[k] = increment(v)
+      if (w.day) Object.assign(update, w.day)
+      tx.update(userRef(), update)
+      return applyWrite(p, w)
+    })
   }
 }
 
@@ -222,6 +235,13 @@ function localStore(): ProfileStore {
       if (!plan.blocked) rememberItem(action.itemKey)
       return { blocked: plan.blocked, events: plan.events, total: plan.total, before, after }
     },
+    async bonus(w) {
+      const before = read()
+      if (!before) throw new Error("Join first")
+      const after = applyWrite(before, { ...w, amount: Math.min(25, Math.max(0, w.amount)) })
+      write(after)
+      return { before, after }
+    },
   }
 }
 
@@ -255,7 +275,14 @@ function hybridStore(): ProfileStore {
     },
     subscribe(cb) {
       if (useFallback) return local.subscribe(cb)
-      return fs.subscribe(cb)
+      // listen to both, so a later fall back to the local store (say Firestore refuses a
+      // write) still reaches the screens
+      const stopFs = fs.subscribe((p) => !useFallback && cb(p))
+      const stopLocal = local.subscribe((p) => useFallback && cb(p))
+      return () => {
+        stopFs()
+        stopLocal()
+      }
     },
     async fetch() {
       if (useFallback) return local.fetch()
@@ -305,6 +332,20 @@ function hybridStore(): ProfileStore {
         console.warn("Firestore award failed, falling back to local store:", err)
         useFallback = true
         return local.award(action)
+      }
+    },
+    async bonus(w) {
+      if (useFallback) return local.bonus(w)
+      try {
+        const res = await fs.bonus(w)
+        try {
+          localStorage.setItem(LOCAL_KEY, JSON.stringify(res.after))
+        } catch {}
+        return res
+      } catch (err) {
+        console.warn("Firestore bonus failed, falling back to local store:", err)
+        useFallback = true
+        return local.bonus(w)
       }
     },
   }

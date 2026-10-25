@@ -12,8 +12,11 @@ import { GovernmentReportModal } from "@/dumps/GovernmentReportModal"
 import { HeatmapView } from "@/dumps/HeatmapView"
 import { SnapReportModal } from "@/dumps/SnapReportModal"
 import { SweeperQueue } from "@/dumps/SweeperQueue"
+import { CleanupSummary } from "@/dumps/CleanupSummary"
 import { SEVERITY_COLOR } from "@/dumps/severity"
 import type { DumpReport, DumpStatus } from "@/dumps/types"
+import { logActivity } from "@/lib/activity"
+import { POINTS } from "@/lib/points"
 import { cn, prefersReducedMotion } from "@/lib/utils"
 import { useApp } from "@/state/AppContext"
 
@@ -22,11 +25,11 @@ type Tab = "heatmap" | "government" | "sweeper"
 const TABS: { id: Tab; label: string; icon: typeof MapIcon }[] = [
   { id: "heatmap", label: "Heatmap", icon: MapIcon },
   { id: "government", label: "Gov dispatch", icon: Send },
-  { id: "sweeper", label: "Sweeper queue", icon: Truck },
+  { id: "sweeper", label: "Cleanup queue", icon: Truck },
 ]
 
 export function DumpsScreen({ dumpId }: { dumpId?: string }) {
-  const { toast, navigate } = useApp()
+  const { toast, navigate, awardBonus } = useApp()
   const [tab, setTab] = useState<Tab>("heatmap")
   const [dumps, setDumps] = useState<DumpReport[]>([])
   const [loading, setLoading] = useState(true)
@@ -60,6 +63,9 @@ export function DumpsScreen({ dumpId }: { dumpId?: string }) {
   const onReportCreated = (dump: DumpReport, dispatchNow = false) => {
     setDumps((prev) => [dump, ...prev])
     toast(`"${dump.title}" reported and added to the heatmap`, "happy")
+    logActivity("dump_report")
+    // a moment later, so the two toasts don't land on top of each other
+    setTimeout(() => awardBonus({ amount: POINTS.dumpReport, stats: { dumpsReported: 1 } }, "Reported a dump"), 900)
     if (dispatchNow) openGov(dump)
   }
 
@@ -78,15 +84,13 @@ export function DumpsScreen({ dumpId }: { dumpId?: string }) {
       const data = await res.json()
       if (data.success && data.dump) {
         setDumps((prev) => prev.map((d) => (d.id === id ? data.dump : d)))
-        toast(`Marked as ${status.replace(/_/g, " ")}`, "info")
+        toast(status === "cleaned" ? "Dump marked as cleaned ✅" : status === "in_progress" ? "Crew sent 🚛" : `Marked as ${status.replace(/_/g, " ")}`, "info")
       }
     } catch (err) {
       console.error("Failed to update status:", err)
       toast("Couldn't update the sweeper status.", "error")
     }
   }
-
-  const active = dumps.filter((d) => d.status !== "cleaned").length
 
   // fly-in: from space down to the dump picked on the globe, or the middle of the active ones
   const target = useMemo(() => {
@@ -128,16 +132,15 @@ export function DumpsScreen({ dumpId }: { dumpId?: string }) {
           <p className="text-[11px] font-bold tracking-[0.14em] text-green uppercase">Community cleanup</p>
           <h1 className="display text-3xl lg:text-[40px]">Illegal dumps</h1>
           <p className="mt-0.5 text-sm text-sub">
-            Report roadside dumps, see hotspots and track cleanup.
-            {!loading && (
-              <span className="chip-alert ml-1.5 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold">{active} active</span>
-            )}
+            Report roadside dumps, see hotspots and track cleanup. Each report earns {POINTS.dumpReport} points.
           </p>
         </div>
         <Button onClick={() => setSnapOpen(true)}>
           <Camera size={18} /> Report a dump
         </Button>
       </header>
+
+      {!loading && <CleanupSummary dumps={dumps} onOpenQueue={() => setTab("sweeper")} />}
 
       <div role="tablist" aria-label="Dumps views" className="no-scrollbar flex gap-2 overflow-x-auto">
         {TABS.map(({ id, label, icon: Icon }) => (
@@ -209,7 +212,8 @@ export function DumpsScreen({ dumpId }: { dumpId?: string }) {
         </span>
       </button>
 
-      <SnapReportModal isOpen={snapOpen} onClose={() => setSnapOpen(false)} onReportCreated={onReportCreated} />
+      {/* mounted only while open, so each report starts with a fresh form */}
+      {snapOpen && <SnapReportModal isOpen onClose={() => setSnapOpen(false)} onReportCreated={onReportCreated} />}
       <GovernmentReportModal
         dump={govDump}
         isOpen={govOpen}

@@ -8,6 +8,7 @@ import { LuluMascot } from "@/components/ui/LuluMascot"
 import { LevelBadge } from "@/components/brand"
 import { AccountCard } from "@/components/account-card"
 import { ScanFootprint } from "@/components/scan-footprint"
+import { TeamPicker } from "@/components/team-picker"
 import { ThemeChoice } from "@/components/theme-toggle"
 import { Avatar, StatTile } from "@/components/widgets"
 import { useMyRank } from "@/hooks/useLeaderboard"
@@ -176,6 +177,8 @@ export function ProfileScreen() {
           <XpRuleRow icon="💬" title="Clarification Answered" desc="Helped Lulu verify material details" xp={`+${POINTS.clarification} XP`} />
           <XpRuleRow icon="🛠️" title="Community Correction" desc="Fixed an item identification" xp={`+${POINTS.correction} XP`} />
           <XpRuleRow icon="🔥" title="7-Day Streak" desc="Sorted 7 consecutive days" xp={`+${POINTS.streak7} XP`} />
+          <XpRuleRow icon="🎯" title="Weekly Challenge" desc="Finish and claim a weekly challenge" xp={`+${POINTS.challenge} XP`} />
+          <XpRuleRow icon="📍" title="Dump Report" desc="Reported an illegal dump" xp={`+${POINTS.dumpReport} XP`} />
         </div>
       </Card>
 
@@ -221,6 +224,13 @@ export function ProfileScreen() {
       {/* 5b. Where you've sorted */}
       <Card index={4}>
         <ScanFootprint />
+      </Card>
+
+      {/* 5c. Team */}
+      <Card index={5}>
+        <h2 className="display text-lg">Your team</h2>
+        <p className="mb-3 text-xs text-sub">Your weekly points also count for your team on the leaderboard.</p>
+        <TeamPicker className="sm:grid-cols-2" />
       </Card>
 
       {/* 6. Badges */}

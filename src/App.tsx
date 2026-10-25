@@ -7,6 +7,7 @@ import { GuideScreen } from "@/screens/GuideScreen"
 import { KabadiwalaScreen } from "@/screens/KabadiwalaScreen"
 import { HistoryDetailScreen, HistoryScreen } from "@/screens/HistoryScreen"
 import { HomeScreen } from "@/screens/HomeScreen"
+import { ImpactScreen } from "@/screens/ImpactScreen"
 import { LeaderboardScreen } from "@/screens/LeaderboardScreen"
 import { ProfileScreen } from "@/screens/ProfileScreen"
 import { ScanScreen } from "@/screens/ScanScreen"
@@ -34,6 +35,8 @@ function CurrentScreen() {
       return <DumpsScreen key={screen.dumpId ?? "dumps"} dumpId={screen.dumpId} />
     case "cleaning":
       return <CleaningScreen />
+    case "impact":
+      return <ImpactScreen />
     case "account":
       return <AccountScreen key={screen.mode ?? "account"} mode={screen.mode} />
     case "kabadiwala":

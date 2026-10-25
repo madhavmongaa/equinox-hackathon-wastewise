@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button"
 import { Mark } from "@/components/ui/card"
 import { LuluMascot } from "@/components/ui/LuluMascot"
 import { LevelBadge } from "@/components/brand"
+import { TeamPicker } from "@/components/team-picker"
 import { Avatar, BoardList, NotConnectedNote, YouRankLine } from "@/components/widgets"
-import { useLeaderboard, useMyRank } from "@/hooks/useLeaderboard"
+import { useLeaderboard, useMyRank, useTeamBoard } from "@/hooks/useLeaderboard"
+import { TEAMS, teamById } from "@/lib/teams"
 import { useStats } from "@/hooks/useStats"
 import type { BoardRow, BoardTab } from "@/lib/leaderboard"
 import { cn } from "@/lib/utils"
@@ -15,9 +17,9 @@ const RINGS = ["#E9B949", "#C0C6CC", "#C98A5B"]
 
 export function LeaderboardScreen() {
   const { navigate, uid, profile } = useApp()
-  const [tab, setTab] = useState<BoardTab>("week")
-  const { rows, loading, error, connected } = useLeaderboard(tab, 50)
-  const rank = useMyRank(tab, rows)
+  const [tab, setTab] = useState<BoardTab | "teams">("week")
+  const { rows, loading, error, connected } = useLeaderboard(tab === "teams" ? "week" : tab, 50)
+  const rank = useMyRank(tab === "teams" ? "week" : tab, rows)
   const s = useStats()
   const podium = rows.slice(0, 3)
   const rest = rows.slice(3)
@@ -39,8 +41,8 @@ export function LeaderboardScreen() {
         </div>
       </div>
 
-      <div className="pill-glass mb-5 grid grid-cols-2 p-1" role="tablist">
-        {(["week", "all"] as const).map((t) => (
+      <div className="pill-glass mb-5 grid grid-cols-3 p-1" role="tablist">
+        {(["week", "all", "teams"] as const).map((t) => (
           <button
             key={t}
             role="tab"
@@ -48,12 +50,14 @@ export function LeaderboardScreen() {
             onClick={() => setTab(t)}
             className={cn("h-11 rounded-full text-sm font-semibold transition-colors", tab === t ? "bg-mint text-green shadow-soft" : "text-sub")}
           >
-            {t === "week" ? "This Week" : "All Time"}
+            {t === "week" ? "This Week" : t === "all" ? "All Time" : "Teams"}
           </button>
         ))}
       </div>
 
-      {!connected ? (
+      {tab === "teams" ? (
+        <TeamBoard />
+      ) : !connected ? (
         <NotConnectedNote />
       ) : loading ? (
         <p className="on-sky py-10 text-center text-sm font-semibold">Loading leaderboard…</p>
@@ -77,7 +81,7 @@ export function LeaderboardScreen() {
         </>
       )}
 
-      {connected && profile && (
+      {connected && profile && tab !== "teams" && (
         <div className="fixed inset-x-0 bottom-[84px] z-30 mx-auto w-full max-w-[480px] px-4 md:max-w-[720px] lg:bottom-6 lg:max-w-[860px]">
           <YouRankLine rank={rank} points={tab === "week" ? s.weeklyPoints : s.points} className="shadow-lift" />
         </div>
@@ -110,6 +114,60 @@ function Podium({ rows, uid }: { rows: BoardRow[]; uid: string | null }) {
         ) : (
           <div key={i} />
         )
+      )}
+    </div>
+  )
+}
+
+/** This week's teams, biggest total first, plus your own team (or a picker if you have none). */
+function TeamBoard() {
+  const { profile } = useApp()
+  const { rows, loading, error, connected } = useTeamBoard()
+  const mine = teamById(profile?.team)
+  const max = Math.max(1, ...rows.map((r) => r.points))
+  // teams with nobody scoring yet still show, at the bottom
+  const all = [...rows, ...TEAMS.filter((t) => !rows.some((r) => r.team === t.id)).map((t) => ({ team: t.id, points: 0, members: 0 }))]
+
+  return (
+    <div className="space-y-4">
+      <div className="glass p-4">
+        <p className="text-sm font-semibold">{mine ? `You're sorting for ${mine.emoji} ${mine.name}` : "Pick a team to add your points to it"}</p>
+        <p className="mb-3 text-xs text-sub">Every point you earn this week counts for your team too.</p>
+        <TeamPicker />
+      </div>
+      {!connected ? (
+        <NotConnectedNote />
+      ) : loading ? (
+        <p className="on-sky py-10 text-center text-sm font-semibold">Loading teams…</p>
+      ) : error ? (
+        <p className="glass px-5 py-6 text-center text-sm">{error}</p>
+      ) : (
+        <ol className="space-y-2">
+          {all.map((r, i) => {
+            const t = teamById(r.team)
+            if (!t) return null
+            return (
+              <li key={r.team} className={cn("ww-fade-up glass flex items-center gap-3 px-4 py-3", mine?.id === r.team && "ring-2 ring-green")} style={{ animationDelay: `${i * 40}ms` }}>
+                <span className="w-6 text-center text-sm font-bold text-sub">#{i + 1}</span>
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-xl" style={{ background: `${t.color}22` }} aria-hidden="true">
+                  {t.emoji}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-baseline justify-between gap-2">
+                    <span className="truncate text-sm font-semibold">{t.name}</span>
+                    <span className="shrink-0 text-sm font-bold tabular-nums">{r.points} pts</span>
+                  </span>
+                  <span className="mt-1.5 block h-2 overflow-hidden rounded-full bg-mint">
+                    <span className="block h-full rounded-full transition-[width] duration-500" style={{ width: `${(r.points / max) * 100}%`, background: t.color }} />
+                  </span>
+                  <span className="mt-1 block text-[11px] text-sub">
+                    {r.members} {r.members === 1 ? "sorter" : "sorters"} this week
+                  </span>
+                </span>
+              </li>
+            )
+          })}
+        </ol>
       )}
     </div>
   )

@@ -44,4 +44,9 @@ export const BADGES: BadgeDef[] = [
   { id: "streak-7", name: "7-Day Streak", emoji: "🔥", description: "Sorted 7 days in a row", earned: (p) => p.longestStreak >= 7 },
   { id: "rule-detective", name: "Rule Detective", emoji: "🕵️", description: "Answered 10 clarifying questions", earned: (p) => p.clarificationsAnswered >= 10 },
   { id: "fixer", name: "Fixer", emoji: "🛠️", description: "Made 5 corrections", earned: (p) => p.corrections >= 5 },
+  { id: "dump-spotter", name: "Dump Spotter", emoji: "📍", description: "Reported an illegal dump", earned: (p) => (p.dumpsReported ?? 0) >= 1 },
+  { id: "challenger", name: "Challenger", emoji: "🎯", description: "Finished a weekly challenge", earned: (p) => (p.challengesCompleted ?? 0) >= 1 },
+  { id: "champ", name: "Challenge Champ", emoji: "🏅", description: "Finished 10 weekly challenges", earned: (p) => (p.challengesCompleted ?? 0) >= 10 },
+  { id: "team-player", name: "Team Player", emoji: "🤝", description: "Joined a campus team", earned: (p) => !!p.team },
+  { id: "century", name: "Century", emoji: "💯", description: "Sorted 100 items", earned: (p) => p.totalScans >= 100 },
 ]

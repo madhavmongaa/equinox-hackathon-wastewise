@@ -1,5 +1,4 @@
-import { Camera, History, MapPinned, MessageCircle, Recycle, Sparkles, Trophy } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { BookOpen, Camera, Leaf, MapPinned, Recycle, Sparkles } from "lucide-react"
 import { Card, Note, SectionTitle } from "@/components/ui/card"
 import { CAMPUS, CampusGlobe } from "@/components/campus-globe"
 import { LuluMascot } from "@/components/ui/LuluMascot"
@@ -7,7 +6,9 @@ import { Logo } from "@/components/brand"
 import { IdentifyCard } from "@/components/identify-card"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { AccountAvatar } from "@/components/account-card"
-import { EcoTrackingCard, HistoryRow, LeaderboardPreviewCard } from "@/components/widgets"
+import { ChallengesCard } from "@/components/challenges-card"
+import { ImpactCard } from "@/components/impact-card"
+import { HistoryRow, LeaderboardPreviewCard } from "@/components/widgets"
 import { useMemo, useState } from "react"
 import { uuid } from "@/lib/utils"
 import { useMockRecentScans } from "@/lib/mockScansStore"
@@ -17,7 +18,7 @@ import { useApp } from "@/state/AppContext"
 import { useCapture } from "@/state/capture"
 
 export function HomeScreen() {
-  const { navigate, history, setChatOpen } = useApp()
+  const { navigate, history } = useApp()
   const capture = useCapture()
   const recent = useMockRecentScans(history)
 
@@ -52,7 +53,10 @@ export function HomeScreen() {
       </header>
 
       {/* 2. Greeting — the Reelmark headline block */}
-      <section className="ww-fade-up relative pt-3 pb-1 text-center lg:col-span-6 lg:self-center lg:pt-0 lg:pr-6 lg:text-left" style={{ animationDelay: "40ms" }}>
+      <section
+        className="ww-fade-up relative pt-3 pb-1 text-center lg:col-span-6 lg:self-center lg:pt-0 lg:pr-6 lg:text-left"
+        style={{ animationDelay: "40ms" }}
+      >
         <h2 className="display text-[44px] leading-[1.04] lg:text-[76px] lg:leading-[0.98]">
           Let's sort it
           <br />
@@ -60,7 +64,9 @@ export function HomeScreen() {
             right 🌱
           </span>
         </h2>
-        <p className="mx-auto mt-3 max-w-[300px] text-[15px] leading-relaxed text-sub lg:mx-0 lg:mt-5 lg:max-w-[440px] lg:text-lg">Not sure which bin to use? Let AI help you decide.</p>
+        <p className="mx-auto mt-3 max-w-[300px] text-[15px] leading-relaxed text-sub lg:mx-0 lg:mt-5 lg:max-w-[440px] lg:text-lg">
+          Not sure which bin to use? Let AI help you decide.
+        </p>
         <div className="relative mt-3 flex items-center justify-center lg:mt-7 lg:justify-start">
           <span className="bg-mint grid shrink-0 aspect-square place-items-center overflow-hidden rounded-full p-1">
             <LuluMascot mood="idle" size={72} />
@@ -87,53 +93,37 @@ export function HomeScreen() {
 
       {/* 4. Quick links */}
       <div className="ww-fade-up grid grid-cols-2 gap-3 sm:grid-cols-4 lg:col-span-12 lg:gap-6" style={{ animationDelay: "120ms" }}>
-        <QuickLink icon={<History size={20} />} label="History" onClick={() => navigate({ name: "history" })} />
-        <QuickLink icon={<Trophy size={20} />} label="Leaderboard" onClick={() => navigate({ name: "leaderboard" })} />
+        <QuickLink icon={<Leaf size={20} />} label="Your impact" note="CO₂ saved" onClick={() => navigate({ name: "impact" })} />
+        <QuickLink icon={<BookOpen size={20} />} label="Waste guide" note="Every bin" onClick={() => navigate({ name: "guide" })} />
         <QuickLink icon={<Recycle size={20} />} label="Kabadiwala" note="Sell your scrap" onClick={() => navigate({ name: "kabadiwala" })} />
         <QuickLink icon={<Sparkles size={20} />} label="Cleaning" note="Services nearby" onClick={() => navigate({ name: "cleaning" })} />
       </div>
 
-      {/* 5. Recent scans */}
-      <Card index={4} className="lg:col-span-7">
+      {/* 5. This week: challenges + your progress */}
+      <ChallengesCard index={3} className="lg:col-span-7" />
+      <ImpactCard index={4} className="lg:col-span-5" />
+
+      {/* 6. Recent scans + leaderboard */}
+      <Card index={5} className="lg:col-span-7">
         <SectionTitle
           action={
-            <button onClick={() => navigate({ name: "history" })} className="ww-press pill-glass min-h-11 px-4 text-sm font-semibold">
+            <button onClick={() => navigate({ name: "history" })} className="ww-press pill-glass min-h-10 px-4 text-sm font-semibold">
               See all
             </button>
           }
         >
           Recent scans
         </SectionTitle>
-        <p className="-mt-1 mb-3 text-xs text-sub">Last 3 objects scanned with category tags and thumbnails</p>
         <div className="space-y-2.5">
           {recent.map((e) => (
             <HistoryRow key={e.id} entry={e} onClick={() => navigate({ name: "historyDetail", id: e.id })} />
           ))}
         </div>
       </Card>
-
-      {/* 6. Chat with Lulu */}
-      <Card index={5} className="flex items-center gap-4 lg:col-span-5 lg:gap-5 lg:p-7">
-        <span className="bg-mint grid shrink-0 aspect-square place-items-center overflow-hidden rounded-full p-1">
-          <LuluMascot mood="idle" size={64} />
-        </span>
-        <div className="min-w-0 flex-1">
-          <h2 className="display text-2xl">Chat with Lulu</h2>
-          <p className="mt-0.5 text-sm text-sub">Need help? Ask Lulu anything about sorting.</p>
-          <Button size="sm" className="mt-3" onClick={() => setChatOpen(true)}>
-            <MessageCircle size={16} /> Start chat
-          </Button>
-        </div>
-      </Card>
+      <LeaderboardPreviewCard index={6} className="lg:col-span-5" />
 
       {/* 7. Globe: the campus plus every reported illegal dump */}
       <DumpGlobe />
-
-      {/* 8. Eco Tracking */}
-      <EcoTrackingCard index={7} className="lg:col-span-4" />
-
-      {/* 9. Leaderboard preview */}
-      <LeaderboardPreviewCard index={8} className="lg:col-span-4" />
 
       {/* 10. Floating Action Button — Scan with Camera */}
       <div className="pointer-events-none fixed inset-x-0 bottom-[84px] z-40 mx-auto flex w-full max-w-[480px] items-center justify-center px-4 md:max-w-[720px] lg:bottom-8 lg:max-w-none lg:justify-end lg:pr-28">
@@ -154,7 +144,10 @@ export function HomeScreen() {
 
 function QuickLink({ icon, label, note, onClick }: { icon: React.ReactNode; label: string; note?: string; onClick: () => void }) {
   return (
-    <button onClick={onClick} className="ww-press glass lift flex min-h-[88px] flex-col items-center justify-center gap-1.5 px-2 py-3 lg:min-h-[76px] lg:flex-row lg:justify-start lg:gap-3 lg:px-5">
+    <button
+      onClick={onClick}
+      className="ww-press glass lift flex min-h-[88px] flex-col items-center justify-center gap-1.5 px-2 py-3 lg:min-h-[76px] lg:flex-row lg:justify-start lg:gap-3 lg:px-5"
+    >
       <span className="pill grid h-9 w-9 place-items-center rounded-full">{icon}</span>
       <span className="text-[13px] font-semibold lg:text-[15px]">{label}</span>
       {note && <span className="-mt-1 text-[11px] text-sub lg:mt-0 lg:ml-auto lg:text-xs">{note}</span>}
@@ -176,8 +169,8 @@ function DumpGlobe() {
   const kg = dumps.reduce((n, d) => n + d.estimatedWeightKg, 0)
   const present = SEVERITY_ORDER.filter((s) => dumps.some((d) => d.severity === s))
   return (
-    <section className="flex flex-col items-center pt-6 lg:col-span-4 lg:justify-center lg:pt-0">
-      <div className="mint-glow w-full max-w-[360px] rounded-full">
+    <section className="glass flex flex-col items-center px-5 pt-6 pb-6 lg:col-span-12 lg:flex-row lg:gap-10 lg:px-10 lg:py-6">
+      <div className="mint-glow w-full max-w-[360px] shrink-0 rounded-full">
         <CampusGlobe
           className="h-[300px] lg:h-[320px]"
           markers={markers}
@@ -188,30 +181,37 @@ function DumpGlobe() {
           onFocusArrive={() => setFocus(null)}
         />
       </div>
-      {loaded && dumps.length > 0 ? (
-        <div className="mt-3 w-full max-w-[360px] text-center">
-          <p className="text-sm text-sub" aria-live="polite">
-            {hovered ?? (
-              <>
-                <span className="font-semibold text-ink">{dumps.length} illegal dumps</span> reported · {kg.toLocaleString()} kg · tap a pin
-              </>
-            )}
-          </p>
-          <ul className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs text-sub" aria-label="Pin colours">
-            {present.map((s) => (
-              <li key={s} className="inline-flex items-center gap-1.5 capitalize">
-                <span className="h-2.5 w-2.5 rounded-full ring-1 ring-white" style={{ backgroundColor: SEVERITY_COLOR[s] }} />
-                {s}
-              </li>
-            ))}
-          </ul>
-          <button onClick={() => navigate({ name: "dumps" })} className="ww-press pill-glass mt-3 inline-flex min-h-10 items-center gap-1.5 px-4 text-sm font-semibold text-green">
-            <MapPinned size={16} /> Open the dumps map
-          </button>
-        </div>
-      ) : (
-        <p className="mt-3 text-sm text-sub">Sorting right, one item at a time 🌍</p>
-      )}
+      <div className="mt-3 w-full max-w-[460px] text-center lg:mt-0 lg:text-left">
+        <p className="text-[11px] font-bold tracking-[0.14em] text-green uppercase">Community cleanup</p>
+        <h2 className="display mt-1 text-2xl lg:text-[32px]">Illegal dumps around campus</h2>
+        {loaded && dumps.length > 0 ? (
+          <div className="mt-2">
+            <p className="text-sm text-sub" aria-live="polite">
+              {hovered ?? (
+                <>
+                  <span className="font-semibold text-ink">{dumps.length} illegal dumps</span> reported · {kg.toLocaleString()} kg · tap a pin
+                </>
+              )}
+            </p>
+            <ul className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs text-sub lg:justify-start" aria-label="Pin colours">
+              {present.map((s) => (
+                <li key={s} className="inline-flex items-center gap-1.5 capitalize">
+                  <span className="h-2.5 w-2.5 rounded-full ring-1 ring-white" style={{ backgroundColor: SEVERITY_COLOR[s] }} />
+                  {s}
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={() => navigate({ name: "dumps" })}
+              className="ww-press pill mt-4 inline-flex min-h-11 items-center gap-1.5 px-5 text-sm font-semibold"
+            >
+              <MapPinned size={16} /> Open the dumps map
+            </button>
+          </div>
+        ) : (
+          <p className="mt-2 text-sm text-sub">No open reports right now. Sorting right, one item at a time 🌍</p>
+        )}
+      </div>
     </section>
   )
 }

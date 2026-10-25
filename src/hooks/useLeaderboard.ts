@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { fetchMyRank, subscribeTop, type BoardRow, type BoardTab } from "@/lib/leaderboard"
+import { fetchMyRank, subscribeTeams, subscribeTop, type BoardRow, type BoardTab, type TeamRow } from "@/lib/leaderboard"
 import { useApp } from "@/state/AppContext"
 
 export function useLeaderboard(tab: BoardTab, n = 50) {
@@ -51,4 +51,33 @@ export function useMyRank(tab: BoardTab, rows?: BoardRow[]) {
   }, [tab, profile, storeMode, pointsVersion, inList])
 
   return rank
+}
+
+/** This week's team totals (live). */
+export function useTeamBoard(enabled = true) {
+  const { storeMode, uid } = useApp()
+  const [rows, setRows] = useState<TeamRow[]>([])
+  const [loading, setLoading] = useState(storeMode === "firebase")
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!enabled || storeMode !== "firebase" || !uid) {
+      setLoading(false)
+      return
+    }
+    setLoading(true)
+    setError(null)
+    return subscribeTeams(
+      (r) => {
+        setRows(r)
+        setLoading(false)
+      },
+      () => {
+        setError("Couldn't load the team scores right now.")
+        setLoading(false)
+      }
+    )
+  }, [enabled, storeMode, uid])
+
+  return { rows, loading, error, connected: storeMode === "firebase" }
 }
