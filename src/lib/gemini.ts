@@ -55,6 +55,8 @@ For anything else (general knowledge, science, studies, coding, writing, campus 
 
 Use off_topic only when the message is empty, unreadable or not a question or request at all.
 
+This is one chat session. The conversation so far is given with each message: remember everything the user said or was shown in it (their name, preferences, earlier items, questions and your answers) and use it for follow-ups like "that one", "what about the second?" or "what did I ask first?". You don't remember earlier chats; if asked about one, say each new chat starts fresh.
+
 Respond ONLY with JSON matching the schema.`
 
 // ---------- schemas ----------
@@ -298,8 +300,22 @@ export interface LuluTurn {
   pending: (ScanInput & { question: string }) | null
   /** The last identified item, so "that's wrong, it's X" can be understood. */
   lastItem: string | null
-  /** Recent chat lines, oldest first, for context. */
+  /** This chat so far, oldest first (Lulu remembers it until the chat is closed). */
   recent: { role: "user" | "lulu"; text: string }[]
+}
+
+/** Same bounds as the server: the most recent messages within ~12k characters (max 60). */
+function chatHistory(recent: LuluTurn["recent"]): string[] {
+  const lines: string[] = []
+  let budget = 12000
+  for (const m of recent.slice(-60).reverse()) {
+    if (!m.text.trim()) continue
+    const line = `${m.role === "user" ? "User" : "Lulu"}: ${m.text.trim().slice(0, 1500)}`
+    if (line.length > budget) break
+    budget -= line.length
+    lines.unshift(line)
+  }
+  return lines
 }
 
 /** Lulu: queries server API first, falls back to client SDK. */
@@ -327,9 +343,9 @@ export async function askLulu(turn: LuluTurn): Promise<LuluAI> {
   if (image) parts.push(imagePart(image))
 
   const ctx: string[] = []
-  if (turn.recent.length) {
-    ctx.push("Recent conversation:")
-    turn.recent.slice(-6).forEach((m) => ctx.push(`${m.role === "user" ? "User" : "Lulu"}: ${m.text}`))
+  const history = chatHistory(turn.recent)
+  if (history.length) {
+    ctx.push("Conversation so far in this chat (oldest first):", ...history)
   }
   if (turn.pending) {
     ctx.push(

@@ -1,7 +1,7 @@
 // Lulu chat (Part 3). One Gemini call per user turn; the app decides what is shown.
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Camera, ChevronRight, Paperclip, Send, Volume2, VolumeX, X } from "lucide-react"
+import { Camera, ChevronRight, Paperclip, Send, SquarePen, Volume2, VolumeX, X } from "lucide-react"
 import { Mark } from "@/components/ui/card"
 import { Sheet } from "@/components/ui/sheet"
 import { LuluMascot } from "@/components/ui/LuluMascot"
@@ -34,6 +34,25 @@ function speechFor(text: string, card?: Card) {
   if (card?.type === "outcome") return `${text} ${outcomeSpeech(card.outcome)}`
   if (card?.type === "clarify") return text.includes(card.outcome.question) ? text : `${text} ${outcomeSpeech(card.outcome)}`
   return text
+}
+
+/** The chat so far for Lulu: each message's text plus what its card showed (results, lists). */
+function chatHistory(messages: Msg[]): { role: "user" | "lulu"; text: string }[] {
+  return messages
+    .filter((m) => m.id !== "welcome")
+    .map((m) => {
+      const parts: string[] = []
+      if (m.text) parts.push(m.text)
+      if (m.role === "user" && m.image) parts.push("(sent a photo)")
+      const c = m.card
+      if (c?.type === "outcome") parts.push(`[Result shown: ${outcomeSpeech(c.outcome)}]`)
+      else if (c?.type === "clarify") parts.push(`[Asked: ${c.outcome.question}]`)
+      else if (c?.type === "category") parts.push(`[Showed the rules for ${getCategory(c.categoryId)?.label ?? c.categoryId}]`)
+      else if (c?.type === "history" || c?.type === "stats" || c?.type === "rank" || c?.type === "leaderboard") parts.push(`[Showed your ${c.type}]`)
+      else if (c?.type === "error") parts.push("[That request failed]")
+      return { role: m.role, text: parts.join(" ") }
+    })
+    .filter((m) => m.text)
 }
 
 /** Puts inline " - item - item" lists on their own lines (Gemini sometimes runs them together). */
@@ -103,6 +122,30 @@ export function LuluChat() {
   const moodTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const messagesRef = useRef(messages)
   messagesRef.current = messages
+
+  // One chat = one session: Lulu remembers it while it's open; closing ends it and the
+  // next open (or New chat) starts fresh.
+  const sessionRef = useRef(0)
+  const ended = useRef(true)
+  const newChat = useCallback(() => {
+    sessionRef.current++
+    stopSpeaking()
+    pending.current = null
+    last.current = null
+    setMessages([{ id: "welcome", role: "lulu", text: WELCOME }])
+    setTyping(null)
+    setText("")
+    setCorrectingId(null)
+    setMood("idle")
+  }, [])
+  useEffect(() => {
+    if (!chatOpen) {
+      ended.current = true
+    } else if (ended.current) {
+      ended.current = false
+      if (messagesRef.current.length > 1) newChat()
+    }
+  }, [chatOpen, newChat])
 
   // voice: replies are read aloud when the user spoke, or always with the toggle on
   const [readAloud, setReadAloud] = useState(() => {
@@ -224,16 +267,17 @@ export function LuluChat() {
         image: turn.image,
         pending: pending.current,
         lastItem: last.current?.item ?? null,
-        recent: messagesRef.current
-          .filter((m) => m.text && m.id !== "welcome")
-          .slice(-6)
-          .map((m) => ({ role: m.role, text: m.text! })),
+        // the whole chat so far (the server keeps the most recent part if it gets long)
+        recent: chatHistory(messagesRef.current),
       }
+      const session = sessionRef.current
       try {
         const ai = await askLulu(request)
+        if (session !== sessionRef.current) return // a new chat started meanwhile
         setTyping(null)
         handleAI(ai, turn)
       } catch (err) {
+        if (session !== sessionRef.current) return
         setTyping(null)
         setMood("sorry")
         const message = errorMessage(err)
@@ -281,6 +325,15 @@ export function LuluChat() {
           <h2 id="lulu-title" className="display text-2xl leading-none">Lulu</h2>
           <Mark className="mt-1 text-[11px]">Your WasteWise helper</Mark>
         </div>
+        <button
+          onClick={newChat}
+          disabled={messages.length <= 1 && !typing}
+          aria-label="Start a new chat"
+          title="New chat"
+          className="ww-press pill-glass grid h-11 w-11 place-items-center text-green disabled:opacity-40"
+        >
+          <SquarePen size={19} />
+        </button>
         {canSpeak() && (
           <button
             onClick={toggleReadAloud}

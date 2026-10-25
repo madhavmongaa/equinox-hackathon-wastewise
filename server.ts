@@ -60,6 +60,8 @@ For anything else (general knowledge, science, studies, coding, writing, campus 
 
 Use off_topic only when the message is empty, unreadable or not a question or request at all.
 
+This is one chat session. The conversation so far is given with each message: remember everything the user said or was shown in it (their name, preferences, earlier items, questions and your answers) and use it for follow-ups like "that one", "what about the second?" or "what did I ask first?". You don't remember earlier chats; if asked about one, say each new chat starts fresh.
+
 Respond ONLY with JSON matching the schema.`
 
 const generatedRuleSchema: Schema = {
@@ -204,6 +206,25 @@ async function generateWithFallback(contents: any[], systemInstruction: string, 
   throw lastError || new Error("Failed to generate content with Gemini")
 }
 
+/**
+ * The chat so far as "User: …" / "Lulu: …" lines: the most recent messages that fit in
+ * about 12k characters (max 60), each clipped, so long chats stay within limits.
+ */
+function chatHistory(recent: unknown): string[] {
+  if (!Array.isArray(recent)) return []
+  const lines: string[] = []
+  let budget = 12000
+  for (const m of recent.slice(-60).reverse()) {
+    if (!m || typeof m.text !== "string" || !m.text.trim()) continue
+    const text = m.text.trim().slice(0, 1500)
+    const line = `${m.role === "user" ? "User" : "Lulu"}: ${text}`
+    if (line.length > budget) break
+    budget -= line.length
+    lines.unshift(line)
+  }
+  return lines
+}
+
 // ---------- API Routes ----------
 
 app.post("/api/identify", async (req, res) => {
@@ -275,9 +296,9 @@ app.post("/api/ask-lulu", async (req, res) => {
     }
 
     const ctx: string[] = []
-    if (turn.recent && turn.recent.length) {
-      ctx.push("Recent conversation:")
-      turn.recent.slice(-6).forEach((m: any) => ctx.push(`${m.role === "user" ? "User" : "Lulu"}: ${m.text}`))
+    const history = chatHistory(turn.recent)
+    if (history.length) {
+      ctx.push("Conversation so far in this chat (oldest first):", ...history)
     }
 
     if (turn.pending) {
