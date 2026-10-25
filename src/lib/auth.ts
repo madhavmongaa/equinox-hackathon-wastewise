@@ -99,8 +99,19 @@ export function authMessage(err: unknown): string {
     "auth/operation-not-allowed": "This sign-in method isn't turned on in Firebase yet (Authentication → Sign-in method).",
     "auth/unauthorized-domain": "This web address isn't allowed for Google sign-in in Firebase (Authentication → Settings → Authorized domains).",
     "auth/requires-recent-login": "Please sign in again first.",
+    "auth/configuration-not-found": "Authentication isn't set up in Firebase yet (Authentication → Get started).",
+    "auth/admin-restricted-operation": "Guest sign-in is turned off in Firebase (Authentication → Sign-in method → Anonymous).",
+    "auth/invalid-api-key": "The Firebase API key in .env.local is wrong.",
+    "auth/api-key-not-valid.-please-pass-a-valid-api-key.": "The Firebase API key in .env.local is wrong.",
+    "auth/provider-already-linked": "This account already has that sign-in method.",
+    "auth/user-disabled": "This account has been turned off.",
+    "auth/invalid-login-credentials": "Email or password is wrong.",
+    "auth/missing-email": "Enter your email address.",
+    "auth/user-token-expired": "Your session ran out. Please sign in again.",
+    "auth/invalid-user-token": "Your session ran out. Please sign in again.",
   }
-  return messages[code] ?? "Something went wrong. Please try again."
+  if (!messages[code]) console.warn("[auth] sign-in failed:", code || err)
+  return messages[code] ?? `Something went wrong${code ? ` (${code})` : ""}. Please try again.`
 }
 
 /** New account with email + password. A guest is upgraded in place (same uid, keeps points). */
