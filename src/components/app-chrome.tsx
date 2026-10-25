@@ -24,21 +24,25 @@ const NAV: { name: Screen["name"]; label: string; icon: typeof House }[] = [
   { name: "profile", label: "Profile", icon: UserRound },
 ]
 
-/** Laptop and desktop (≥1024px): a Reelmark-style top bar instead of the bottom tabs. */
+/**
+ * Laptop and desktop (≥1024px): a Reelmark-style top bar instead of the bottom tabs.
+ * Narrow laptops (lg) get a compact bar: no tagline, text-only tabs, a short Lulu button;
+ * from xl the full version fits. The tabs take the space between and never push the buttons off.
+ */
 export function TopNav() {
   const { screen, navigate, setChatOpen } = useApp()
   const current = screen.name === "historyDetail" ? "history" : screen.name
   return (
     <header className="sticky top-0 z-40 hidden border-b border-green/10 bg-page/90 backdrop-blur lg:block">
-      <div className="mx-auto flex h-[72px] max-w-[1200px] items-center gap-6 px-8">
+      <div className="mx-auto flex h-[68px] max-w-[1280px] items-center gap-3 px-6 xl:h-[72px] xl:gap-5 xl:px-8">
         <button onClick={() => navigate({ name: "home" })} className="flex shrink-0 items-center gap-2.5" aria-label="WasteWise home">
           <Logo size={34} />
           <span className="text-left">
             <span className="display block text-[21px] leading-none text-green">WasteWise</span>
-            <span className="mt-1 block text-[11px] text-sub">Sort smarter. Waste less.</span>
+            <span className="mt-1 hidden text-[11px] text-sub xl:block">Sort smarter. Waste less.</span>
           </span>
         </button>
-        <nav className="mx-auto flex items-center gap-1" aria-label="Main">
+        <nav className="flex min-w-0 flex-1 items-center justify-center gap-0.5 xl:gap-1" aria-label="Main">
           {NAV.map(({ name, label, icon: Icon }) => {
             const active = current === name
             return (
@@ -47,21 +51,25 @@ export function TopNav() {
                 onClick={() => navigate({ name } as Screen)}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "ww-press flex h-10 items-center gap-2 rounded-full px-4 text-[15px] transition-colors",
+                  "ww-press flex h-10 shrink-0 items-center gap-2 rounded-full px-3 text-[14px] whitespace-nowrap transition-colors xl:px-3.5 xl:text-[15px]",
                   active ? "bg-mint font-medium text-green" : "text-ink hover:text-green"
                 )}
               >
-                <Icon size={17} strokeWidth={active ? 2.4 : 2} />
+                <Icon size={17} strokeWidth={active ? 2.4 : 2} className="hidden xl:block" aria-hidden />
                 {label}
               </button>
             )
           })}
         </nav>
-        <ThemeToggle />
-        <AccountButton />
-        <Button size="sm" className="shrink-0" onClick={() => setChatOpen(true)}>
-          <MessageCircle size={16} /> Chat with Lulu
-        </Button>
+        <div className="flex shrink-0 items-center gap-2">
+          <ThemeToggle />
+          <AccountButton />
+          <Button size="sm" className="shrink-0" onClick={() => setChatOpen(true)} aria-label="Chat with Lulu">
+            <MessageCircle size={16} />
+            <span className="xl:hidden">Lulu</span>
+            <span className="hidden xl:inline">Chat with Lulu</span>
+          </Button>
+        </div>
       </div>
     </header>
   )
