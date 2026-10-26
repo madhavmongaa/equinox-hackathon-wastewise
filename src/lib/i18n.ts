@@ -1,5 +1,5 @@
 // English / हिन्दी. The main labels (navigation, Home, scan results) are translated here
-// and Lulu replies in Hindi; the campus guide's own rule text stays as written.
+// and Lulu replies in Hindi.
 
 import { useSyncExternalStore } from "react"
 
@@ -50,11 +50,10 @@ const HI: Record<string, string> = {
   "Sign in": "साइन इन",
   "Let's sort it": "चलो सही",
   "right 🌱": "छाँटें 🌱",
-  "Not sure which bin to use? Let AI help you decide.": "कौन-सा डिब्बा? AI से पूछें।",
+  "Not sure which bin to use? Lulu will tell you.": "कौन-सा डिब्बा? लुलु बताएगी।",
   "Ask Lulu!": "लुलु से पूछो!",
   "Your impact": "आपका असर",
   "CO₂ saved": "CO₂ की बचत",
-  "Waste guide": "कचरा गाइड",
   "Bin map": "डिब्बों का नक्शा",
   "Nearest bin": "सबसे पास का डिब्बा",
   "Every bin": "हर डिब्बा",

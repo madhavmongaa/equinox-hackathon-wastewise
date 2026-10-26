@@ -99,7 +99,7 @@ export interface TeamRow {
 
 /**
  * This week's team totals: everyone visible who scored this week, added up by team.
- * Campus-sized, so one query of up to 500 profiles is enough.
+ * One query of up to 500 profiles is enough for now (move to a server tally to scale).
  */
 export function subscribeTeams(cb: (rows: TeamRow[]) => void, onError: (e: Error) => void) {
   if (!db) return () => {}

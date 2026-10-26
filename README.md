@@ -1,17 +1,13 @@
 # WasteWise — Sort smarter. Waste less.
 
-A mobile-first AI waste-sorting assistant for the Zenith School of AI campus.
+A mobile-first waste-sorting assistant for homes, offices and neighbourhoods. Snap or describe
+any item and Lulu tells you which bin it goes in and how to prepare it.
 
-**Core principle: Gemini identifies the item. The guide decides the bin first; Gemini fills the gaps.**
-When the guide covers the item, the model returns a `rule_id`. The app checks it against
-`src/data/wasteGuide.json` and shows the category, preparation steps and quoted rule text from the
-guide file, never from the model's wording.
-
-When the guide has no matching rule, the model writes its own `generated_rule`: one of the guide's
-categories (it can't invent a new bin), up to four preparation steps and a short explanation. The
-app shows it as a normal result, labelled **"AI-suggested · not in the campus guide"** instead of a
-guide section number, so official wording and model wording are never confused. The app only says
-"Local disposal rule not found" when the item stays unclear after the clarifying questions.
+**How answers work:** Gemini identifies the item and writes the disposal rule for it: one of the
+five bin categories in `src/data/binCategories.json` (dry, wet, hazardous, reject, e-waste, following
+Indian segregation practice; it can't invent a new bin), up to four preparation steps and a short
+explanation. If it isn't sure what the item is, it asks one clarifying question first. Every answer is
+AI-generated; the app says so only in small print under results and in the chat.
 
 ## Stack
 
@@ -66,20 +62,19 @@ To try accounts without touching the real project, run the Firebase Auth emulato
 with `VITE_FIREBASE_AUTH_EMULATOR=http://127.0.0.1:9099`. Firestore still points at the real
 project, which won't accept emulator sign-ins, so profiles fall back to on-device storage there.
 
-## The waste guide
+## Bins, areas and sample data
 
-`src/data/wasteGuide.json` holds the campus guide. **The current file is a draft with sample
-wording.** Replace every `source_text` with the exact sentences from the official Zenith guide
-before the demo, and delete any item the guide doesn't cover. The whole file is sent to Gemini as
-part of the system instruction. Items you delete aren't lost: Gemini answers them with an
-AI-suggested rule instead.
+- `src/data/binCategories.json`: the five bins (id, label, bin colour). Sent to Gemini with every scan.
+- `src/lib/teams.ts`: area teams for the leaderboard (Sohna, Badshahpur, …). Add a line per new area.
+- `src/data/pickups.ts`: collection times per area. **Sample schedule**: replace with real times.
+- `src/data/bins.ts`: public bin positions for the bin map. **Sample positions** around Sohna.
 
 ## Where things are
 
 | Area | Files |
 | --- | --- |
 | Screens | `src/screens/*` (Home, Scan, History, Leaderboard, Profile) |
-| Scan flow, guide validation + AI-suggested rules | `src/lib/flow.ts`, `src/lib/guide.ts`, `src/lib/gemini.ts` |
+| Scan flow and bin decisions | `src/lib/flow.ts`, `src/lib/categories.ts`, `src/lib/gemini.ts` |
 | Image resize / thumbnails | `src/lib/image.ts` |
 | Camera + upload (shared by screens and chat) | `src/state/capture.tsx` |
 | Lulu chat | `src/chat/LuluChat.tsx` |
@@ -92,13 +87,13 @@ AI-suggested rule instead.
 
 - `/`: the WasteWise landing page (`index.html` + `hero/style.css`, `hero/script.js`). Plain HTML/CSS/JS:
   a 1440×1080 frame scaled with `--u = min(100vw/1440, 100vh/1080)`, with a curved, draggable carousel
-  of waste-item cards taken from the campus waste guide. Every button opens the app. Phones (≤ 820px)
+  of everyday waste items and their bins. Every button opens the app. Phones (≤ 820px)
   get a stacked layout.
 - `/app.html`: the WasteWise React app (`app.html` → `src/main.tsx`), in the same mint studio style as the landing page
   (off-white page, forest green, mint badges, Inter Tight headlines, Caveat notes). The shared
   surfaces live in `src/index.css` (`.glass` cards, `.pill` / `.pill-glass` buttons, `.badge-mint`, `.note`).
-- App screens have addresses, so links open them directly: `/app.html#scan`, `#guide` (read-only view of
-  the waste guide), `#leaderboard`, `#history`, `#profile`, and `#lulu` (opens the chat). The browser back
+- App screens have addresses, so links open them directly: `/app.html#scan`, `#bins` (bin map), `#impact`,
+  `#leaderboard`, `#history`, `#profile`, and `#lulu` (opens the chat). The browser back
   button moves between screens.
 - `skyprompt/`: the earlier Skyprompt hero, kept for reference (dev server: `/skyprompt/`). It uses
   `public/media/scene.mp4` and the fonts in `hero/fonts/`.

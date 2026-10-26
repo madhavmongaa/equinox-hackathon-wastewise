@@ -1,7 +1,7 @@
-// Gemini identifies the item. The guide decides the bin when it has a rule for it;
-// otherwise Gemini's own rule is used and labelled as AI-suggested.
+// Gemini identifies the item and writes the disposal rule for it (bin, preparation
+// steps and why); the app turns that into the result card.
 
-import { AI_RULE_ID, getCategory, getRule } from "@/lib/guide"
+import { AI_RULE_ID, getCategory } from "@/lib/categories"
 import { identifyItem } from "@/lib/gemini"
 import type { Box, DetectedItemAI, HistoryEntry, MultiPart, Outcome, Rule, ScanAI, ScanInput, SingleOutcome } from "@/lib/types"
 import { uuid } from "@/lib/utils"
@@ -27,13 +27,13 @@ function interpretSingle(ai: ScanAI, roundsAnswered: number): Outcome {
   if (!ai.item.trim() || /\b(no (waste )?item|not (a )?waste|no waste)\b/i.test(ai.item)) {
     return { kind: "not_found", ai, reason: "unclear" }
   }
-  const rule =(ai.rule_found ? getRule(ai.rule_id) : null) ?? generatedRule(ai)
+  const rule = generatedRule(ai)
   const category = rule ? getCategory(rule.category_id) : null
   if (rule && category) return { kind: "result", ai, rule, category }
   return { kind: "not_found", ai, reason: "no_rule" }
 }
 
-/** One item of a multi-item scan, decided by the same guide-first rules. */
+/** One item of a multi-item scan, decided the same way as a single item. */
 function toPart(it: DetectedItemAI): MultiPart {
   const ai: ScanAI = {
     item: it.item,

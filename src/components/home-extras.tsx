@@ -14,7 +14,7 @@ import { uuid } from "@/lib/utils"
 import { useApp } from "@/state/AppContext"
 import { t, useLang } from "@/lib/i18n"
 
-/** Next waste pickups for your team, with a reminder switch. */
+/** Next waste pickups for your area, with a reminder switch. */
 export function PickupCard({ index, className }: { index?: number; className?: string }) {
   useLang()
   const { profile, navigate } = useApp()
@@ -36,9 +36,9 @@ export function PickupCard({ index, className }: { index?: number; className?: s
       </div>
       {!team ? (
         <div className="tile px-4 py-4 text-sm">
-          <p className="text-sub">Pick your hostel or block to see when each bin is collected.</p>
+          <p className="text-sub">Pick your area to see when each kind of waste is collected.</p>
           <Button size="sm" variant="secondary" className="mt-3" onClick={() => navigate({ name: "profile" })}>
-            Choose my team
+            Choose my area
           </Button>
         </div>
       ) : (

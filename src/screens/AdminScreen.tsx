@@ -1,4 +1,4 @@
-// Campus dashboard for staff: illegal-dump reports (status, severity, area, how fast
+// Community dashboard: illegal-dump reports (status, severity, area, how fast
 // they're cleared) and who's taking part this week, by team. Scan history stays on each
 // phone, so it isn't counted here.
 
@@ -82,8 +82,8 @@ export function AdminScreen() {
           <ArrowLeft size={22} />
         </Button>
         <div>
-          <p className="text-[11px] font-bold tracking-[0.14em] text-green uppercase">For campus staff</p>
-          <h1 className="display text-3xl lg:text-[40px]">Campus dashboard</h1>
+          <p className="text-[11px] font-bold tracking-[0.14em] text-green uppercase">For municipal teams & organisers</p>
+          <h1 className="display text-3xl lg:text-[40px]">Community dashboard</h1>
         </div>
       </header>
 
@@ -206,14 +206,14 @@ export function AdminScreen() {
           <h2 className="display text-lg">Participation this week</h2>
         </div>
         {!teams.connected ? (
-          <p className="tile px-4 py-4 text-sm text-sub">Needs the campus leaderboard (Firebase) to be connected.</p>
+          <p className="tile px-4 py-4 text-sm text-sub">Needs the leaderboard (Firebase) to be connected.</p>
         ) : teams.loading ? (
           <Skeleton className="h-40" />
         ) : (
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs text-sub">
-                <th className="pb-2 font-semibold">Team</th>
+                <th className="pb-2 font-semibold">Area</th>
                 <th className="pb-2 text-right font-semibold">Sorters</th>
                 <th className="pb-2 text-right font-semibold">Points</th>
               </tr>
@@ -234,7 +234,7 @@ export function AdminScreen() {
             </tbody>
           </table>
         )}
-        <p className="mt-3 text-[11px] text-sub">Scan history stays on each student's phone, so it isn't included here.</p>
+        <p className="mt-3 text-[11px] text-sub">Scan history stays on each person's phone, so it isn't included here.</p>
       </Card>
     </div>
   )

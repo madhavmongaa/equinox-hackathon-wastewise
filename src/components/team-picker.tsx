@@ -3,7 +3,7 @@ import { TEAMS } from "@/lib/teams"
 import { cn } from "@/lib/utils"
 import { useApp } from "@/state/AppContext"
 
-/** Pick (or switch) your campus team. Needs a leaderboard profile. */
+/** Pick (or switch) your area team. Needs a leaderboard profile. */
 export function TeamPicker({ className }: { className?: string }) {
   const { profile, openJoin, updateSettings, toast } = useApp()
   const pick = async (id: string) => {
@@ -17,7 +17,7 @@ export function TeamPicker({ className }: { className?: string }) {
     }
   }
   return (
-    <div className={cn("grid grid-cols-2 gap-2 sm:grid-cols-3", className)} role="radiogroup" aria-label="Campus team">
+    <div className={cn("grid grid-cols-2 gap-2 sm:grid-cols-3", className)} role="radiogroup" aria-label="Your area">
       {TEAMS.map((t) => {
         const on = profile?.team === t.id
         return (

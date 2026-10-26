@@ -1,0 +1,32 @@
+[
+  {
+    "id": "dry",
+    "label": "Dry Waste",
+    "bin": "Blue bin",
+    "color": "#2F6FD6"
+  },
+  {
+    "id": "wet",
+    "label": "Wet Waste",
+    "bin": "Green bin",
+    "color": "#3C9A4E"
+  },
+  {
+    "id": "hazardous",
+    "label": "Hazardous Waste",
+    "bin": "Red bin",
+    "color": "#D2463C"
+  },
+  {
+    "id": "reject",
+    "label": "Reject / Sanitary Waste",
+    "bin": "Grey bin",
+    "color": "#6E6E6E"
+  },
+  {
+    "id": "ewaste",
+    "label": "E-waste",
+    "bin": "E-waste drop box",
+    "color": "#7A4FC9"
+  }
+]

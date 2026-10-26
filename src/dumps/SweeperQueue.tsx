@@ -27,7 +27,7 @@ const STAGES: { id: Stage; label: string; match: (d: DumpReport) => boolean }[] 
   { id: "cleaned", label: "Cleaned", match: (d) => d.status === "cleaned" },
 ]
 
-const DEFAULT_CREW = "Campus Sweeper Crew A"
+const DEFAULT_CREW = "Municipal Sweeper Crew A"
 
 export function SweeperQueue({ dumps, onUpdateStatus, onOpenGovernmentModal }: SweeperQueueProps) {
   const [stage, setStage] = useState<Stage>("waiting")

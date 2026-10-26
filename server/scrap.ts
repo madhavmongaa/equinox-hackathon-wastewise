@@ -138,7 +138,7 @@ async function fromOsm(lat: number, lng: number, radiusM: number): Promise<{ dea
   try {
     const res = await fetch("https://overpass-api.de/api/interpreter", {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": "WasteWise campus app" },
+      headers: { "Content-Type": "application/x-www-form-urlencoded", "User-Agent": "WasteWise app" },
       body: "data=" + encodeURIComponent(query),
       signal: AbortSignal.timeout(25000),
     })

@@ -1,9 +1,9 @@
-// Cleaning services around the campus, laid out like a home-services app:
+// Cleaning services nearby, laid out like a home-services app:
 // search, a category grid, online platforms, local cleaners and a Google Maps search.
 
 import { useEffect, useMemo, useState } from "react"
 import { Bath, BadgeCheck, Bug, Building2, CookingPot, Droplets, ExternalLink, LocateFixed, MapPin, Phone, Search, Sofa, Sparkles, Star, UsersRound, type LucideIcon } from "lucide-react"
-import { CAMPUS } from "@/components/campus-globe"
+import { HOME_AREA } from "@/components/earth-globe"
 import { CHECKED_ON, CLEANING_CATEGORIES, CLEANING_PROVIDERS, type CleaningCategory, type CleaningProvider } from "@/data/cleaningServices"
 import { currentLocation } from "@/lib/location"
 import { cn } from "@/lib/utils"
@@ -57,7 +57,7 @@ function useLivePlaces(category: CleaningCategory, lat: number, lng: number) {
 export function CleaningScreen() {
   const [category, setCategory] = useState<CleaningCategory | null>(null)
   const [query, setQuery] = useState("")
-  const [place, setPlace] = useState<{ lat: number; lng: number; mine: boolean }>({ ...CAMPUS, mine: false })
+  const [place, setPlace] = useState<{ lat: number; lng: number; mine: boolean }>({ ...HOME_AREA, mine: false })
   const [locating, setLocating] = useState(false)
 
   const matches = useMemo(() => {
@@ -87,7 +87,7 @@ export function CleaningScreen() {
   return (
     <div className="space-y-5 px-4 pt-4 pb-32 lg:mx-auto lg:max-w-[960px] lg:pt-8 lg:pb-16">
       <header>
-        <p className="text-[11px] font-bold tracking-[0.14em] text-green uppercase">Home & campus services</p>
+        <p className="text-[11px] font-bold tracking-[0.14em] text-green uppercase">Home & office services</p>
         <h1 className="display text-3xl lg:text-[40px]">Cleaning services</h1>
         <p className="mt-0.5 text-sm text-sub">Cleaners around Sohna and Gurugram, from deep cleans to pest control.</p>
       </header>
@@ -137,7 +137,7 @@ export function CleaningScreen() {
         <section className="space-y-3" aria-live="polite">
           <div className="flex items-end justify-between gap-3">
             <div>
-              <h2 className="text-lg font-bold text-ink">Top rated {place.mine ? "near you" : "near campus"}</h2>
+              <h2 className="text-lg font-bold text-ink">Top rated {place.mine ? "near you" : "in Sohna"}</h2>
               <p className="text-xs text-sub">
                 {liveLabel} · live from Google Maps
               </p>
@@ -211,7 +211,7 @@ export function CleaningScreen() {
               <MapPin size={18} className="text-green" /> More on Google Maps
             </h2>
             <p className="mt-0.5 text-sm text-sub">
-              {cat ? `${cat.label} cleaners` : "Cleaning services"} {place.mine ? "near your location" : "near campus (Sohna)"}, with reviews and phone numbers.
+              {cat ? `${cat.label} cleaners` : "Cleaning services"} {place.mine ? "near your location" : "in Sohna"}, with reviews and phone numbers.
             </p>
           </div>
           {!place.mine && (
@@ -229,7 +229,7 @@ export function CleaningScreen() {
               rel="noreferrer"
               className="ww-press inline-flex min-h-10 items-center gap-1.5 rounded-full bg-green px-4 text-sm font-semibold text-white hover:bg-green-2"
             >
-              {c.label} near {place.mine ? "me" : "campus"} <ExternalLink size={14} />
+              {c.label} near {place.mine ? "me" : "Sohna"} <ExternalLink size={14} />
             </a>
           ))}
         </div>

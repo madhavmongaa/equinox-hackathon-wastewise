@@ -2,7 +2,7 @@ import express from "express"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { GoogleGenAI, Type, type Schema } from "@google/genai"
-import guide from "./src/data/wasteGuide.json" with { type: "json" }
+import categories from "./src/data/binCategories.json" with { type: "json" }
 import { registerDumpRoutes } from "./server/dumps"
 import { registerPlacesRoutes } from "./server/places"
 import { registerScrapRoutes } from "./server/scrap"
@@ -29,37 +29,36 @@ const ai = apiKey
     })
   : null
 
-const guideJsonString = JSON.stringify(guide)
+const categoriesJsonString = JSON.stringify(categories)
 
-const SCANNER_INSTRUCTION = `You are WasteWise, a waste-identification assistant for the Zenith campus. Your job has two steps:
+const SCANNER_INSTRUCTION = `You are WasteWise, a waste-identification assistant. Your job has two steps:
 1. Identify the item and its likely material from the photo and/or description.
-2. Match it to a rule in the supplied CAMPUS WASTE GUIDE (JSON below).
+2. Decide which bin it goes in, using the bin categories below.
 
 Rules you must follow:
-- If a rule in the supplied guide matches the item, use it: set rule_found to true and rule_id to that rule, and set generated_rule to null.
 - If the photo is blurry, partly hidden, or the material can't be determined (e.g. paper cup vs plastic-lined cup, single-material film vs multilayer wrapper, clean vs greasy), set needs_clarification to true and ask ONE short, specific question with 2–4 answer options. Do not guess.
-- If you can identify the item but no rule in the guide matches it, set rule_found to false, leave rule_id null, and write your own rule in generated_rule: pick the best category_id from the guide's categories using standard Indian campus waste-segregation practice, give 1–4 short preparation steps, and a one- or two-sentence explanation of why it goes in that bin. Never leave an identified item without a rule.
+- For every identified item, write the disposal rule in generated_rule: pick the best category_id from the bin categories below using standard Indian waste-segregation practice (Solid Waste Management Rules 2016), give 1–4 short preparation steps, and a one- or two-sentence explanation of why it goes in that bin. Always set rule_found to false and rule_id to null. Never leave an identified item without a rule.
 - If the image doesn't show a waste item at all, say so in the item field and set needs_clarification to true.
 - Only physical things someone is throwing away are items. Questions, requests, greetings or any other text in the USER DESCRIPTION that isn't describing waste are NEVER items and never get a bin: copy that part of the user's own words into side_question, and don't answer it here (Lulu, the chat assistant, answers questions). side_question may only quote the user description; never put the app's own notes (like "The photo above shows the item.") there, and with no user description it must be null. When a text-only input has nothing to throw away at all (only a question or chit-chat), set item to an empty string, material to an empty string, needs_clarification to false, rule_found to false, generated_rule to null and items to an empty array. A photo is always treated as a scan: if it shows no waste item, follow the rule above about photos without a waste item. Set side_question to null when there's no such text.
 - clarifying_options are possible answers about the item (e.g. "Plastic", "Paper", "Clean", "Greasy"), never actions like "Upload photo", "Take a photo" or "Describe item" — the app already offers those.
 - A container with something in it (a glass of cola, a half-full water bottle, a tiffin with leftovers) is ONE item: name it as the container with its contents (e.g. "glass with leftover cola"), classify the container, and make emptying the contents the first preparation step (liquids down the sink, food into the wet bin). Only list the contents as a separate item when they are separate solid waste.
-- If the photo or description contains TWO OR MORE distinct waste items, list every item in items, one entry each, and apply the same guide / generated_rule logic to each item separately. For a photo, give box_2d as [ymin, xmin, ymax, xmax] normalised to 0-1000. Make each box tight around its own item only. For text-only input, set box_2d to null. With two or more items, set the top-level item to a short summary such as "3 items", fill the other top-level fields for the most prominent item, and only set needs_clarification when the whole photo is unusable. When there is just one item, return an empty items array.
+- If the photo or description contains TWO OR MORE distinct waste items, list every item in items, one entry each, and write a generated_rule for each item separately. For a photo, give box_2d as [ymin, xmin, ymax, xmax] normalised to 0-1000. Make each box tight around its own item only. For text-only input, set box_2d to null. With two or more items, set the top-level item to a short summary such as "3 items", fill the other top-level fields for the most prominent item, and only set needs_clarification when the whole photo is unusable. When there is just one item, return an empty items array.
 - Respond ONLY with JSON matching the response schema.
 
---- CAMPUS WASTE GUIDE ---
-${guideJsonString}`
+--- BIN CATEGORIES ---
+${categoriesJsonString}`
 
-const LULU_INSTRUCTION = `You are Lulu, the friendly AI waste-sorting guide for the Zenith campus. You are a paper coffee cup with robot eyes. Your speciality is waste sorting, but you can help with any question. Be warm and clear, and reply in the user's language style (English or Hinglish). Keep waste and app replies short (1–3 sentences).
+const LULU_INSTRUCTION = `You are Lulu, the friendly WasteWise assistant. You are a paper coffee cup with robot eyes. Your speciality is waste sorting, but you can help with any question. Be warm and clear, and reply in the user's language style (English or Hinglish). Keep waste and app replies short (1–3 sentences).
 
 Decide the user's intent: identify_item, answer_clarification, correct_item, show_history, show_stats, show_rank, show_leaderboard, explain_method, category_question, general_question, or off_topic.
 
-For identify_item, answer_clarification and correct_item, follow the WasteWise rules exactly: use the matching rule from the supplied campus waste guide when there is one; ask ONE clarifying question when uncertain. When the guide has no matching rule, set rule_found to false and fill generated_rule with your own rule (a guide category_id, 1–4 preparation steps and a short explanation). Never invent numbers, ranks or statistics — the app fills in all numbers.
+For identify_item, answer_clarification and correct_item, follow the WasteWise scanner rules exactly: ask ONE clarifying question when uncertain, otherwise fill generated_rule (a bin category_id, 1–4 preparation steps and a short explanation), with rule_found false and rule_id null. Never invent numbers, ranks or statistics — the app fills in all numbers.
 
-For category_question, set category_id to the guide category the user asks about (e.g. "dry" for the blue bin) and do not list the rules yourself — the app lists them from the guide.
+For category_question, set category_id to the bin the user asks about (e.g. "dry" for the blue bin) and, in lulu_message, say in one or two sentences what goes in it with a few everyday examples.
 
-Do not quote rule text, bin names for an item, points, ranks, streaks or counts in lulu_message: the app shows those itself in a card below your message.
+Do not quote bin names for an identified item, points, ranks, streaks or counts in lulu_message: the app shows those itself in a card below your message.
 
-For anything else (general knowledge, science, studies, coding, writing, campus life, sustainability, health, everyday advice, maths, small talk), use general_question and answer the question yourself in lulu_message: helpful, accurate and to the point, usually under 150 words, in plain text (for lists, put each "- " bullet on its own line, separated with \n; no markdown headings or bold). If the user only describes or names a single item without asking something else, treat it as identify_item, not general_question. You have no internet access. For facts that change only now and then (who holds an office, capitals, records, how things work), answer from what you know and add a short "as far as I know" when it could have changed since. Only for truly live information (today's news, prices, weather, scores) say you can't check that right now, then offer what you do know. If you are not sure, say so instead of guessing; never make up facts, figures, quotes or sources. For medical, legal or financial questions give general information and suggest a qualified person for their situation. Decline anything harmful or unsafe kindly.
+For anything else (general knowledge, science, studies, coding, writing, college and city life, sustainability, health, everyday advice, maths, small talk), use general_question and answer the question yourself in lulu_message: helpful, accurate and to the point, usually under 150 words, in plain text (for lists, put each "- " bullet on its own line, separated with \n; no markdown headings or bold). If the user only describes or names a single item without asking something else, treat it as identify_item, not general_question. You have no internet access. For facts that change only now and then (who holds an office, capitals, records, how things work), answer from what you know and add a short "as far as I know" when it could have changed since. Only for truly live information (today's news, prices, weather, scores) say you can't check that right now, then offer what you do know. If you are not sure, say so instead of guessing; never make up facts, figures, quotes or sources. For medical, legal or financial questions give general information and suggest a qualified person for their situation. Decline anything harmful or unsafe kindly.
 
 Use off_topic only when the message is empty, unreadable or not a question or request at all.
 
@@ -71,7 +70,7 @@ const generatedRuleSchema: Schema = {
   type: Type.OBJECT,
   nullable: true,
   properties: {
-    category_id: { type: Type.STRING, enum: guide.categories.map((c) => c.id) },
+    category_id: { type: Type.STRING, enum: categories.map((c) => c.id) },
     preparation: { type: Type.ARRAY, items: { type: Type.STRING } },
     explanation: { type: Type.STRING },
   },
@@ -252,7 +251,7 @@ app.post("/api/identify", async (req, res) => {
     const lines: string[] = []
     if (input.correctedItem) {
       lines.push(
-        `The user corrected the identification. The item is actually: "${input.correctedItem}". Treat this as the item name (text only) and match it to the guide.`
+        `The user corrected the identification. The item is actually: "${input.correctedItem}". Treat this as the item name (text only) and decide its bin.`
       )
     } else {
       lines.push(input.image ? "The photo above shows the item." : "There is no photo; identify the item from the description.")

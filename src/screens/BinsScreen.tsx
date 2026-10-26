@@ -1,21 +1,21 @@
-// Campus bin map: every bin on a Google map, coloured by type, and a list sorted by
+// Bin map: every bin on a Google map, coloured by type, and a list sorted by
 // distance from you. Opened from a scan result to find the nearest bin of that colour.
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { ArrowLeft, LocateFixed, Navigation } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { CAMPUS } from "@/components/campus-globe"
+import { HOME_AREA } from "@/components/earth-globe"
 import { BINS, distanceM, distanceText } from "@/data/bins"
 import { binTone } from "@/lib/binColors"
-import { guide } from "@/lib/guide"
+import { CATEGORIES } from "@/lib/categories"
 import { MAP_ID, pinElement, useGoogleMaps } from "@/lib/googleMaps"
 import { currentLocation, type LatLng } from "@/lib/location"
 import { useTheme } from "@/lib/theme"
 import { cn } from "@/lib/utils"
 import { useApp } from "@/state/AppContext"
 
-const label = (id: string) => guide.categories.find((c) => c.id === id)?.label ?? id
-const binName = (id: string) => guide.categories.find((c) => c.id === id)?.bin ?? ""
+const label = (id: string) => CATEGORIES.find((c) => c.id === id)?.label ?? id
+const binName = (id: string) => CATEGORIES.find((c) => c.id === id)?.bin ?? ""
 
 export function BinsScreen({ category }: { category?: string }) {
   const { navigate } = useApp()
@@ -33,8 +33,8 @@ export function BinsScreen({ category }: { category?: string }) {
     locate()
   }, [])
 
-  // far from campus (or no location): measure from the campus itself
-  const from = me && distanceM(me, CAMPUS) < 3000 ? me : CAMPUS
+  // far from the mapped area (or no location): measure from the area itself
+  const from = me && distanceM(me, HOME_AREA) < 3000 ? me : HOME_AREA
   const list = useMemo(
     () =>
       BINS.filter((b) => !filter || b.category === filter)
@@ -51,7 +51,7 @@ export function BinsScreen({ category }: { category?: string }) {
           <ArrowLeft size={22} />
         </Button>
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-bold tracking-[0.14em] text-green uppercase">Campus bins</p>
+          <p className="text-[11px] font-bold tracking-[0.14em] text-green uppercase">Bins near you</p>
           <h1 className="display text-3xl lg:text-[40px]">{nearest && filter ? `Nearest ${binName(filter).toLowerCase()}` : "Find a bin"}</h1>
         </div>
         <Button variant="secondary" size="sm" onClick={locate} disabled={locating}>
@@ -60,7 +60,7 @@ export function BinsScreen({ category }: { category?: string }) {
       </header>
 
       <div className="no-scrollbar flex gap-2 overflow-x-auto lg:col-span-12" role="radiogroup" aria-label="Bin type">
-        {[null, ...guide.categories.map((c) => c.id)].map((id) => {
+        {[null, ...CATEGORIES.map((c) => c.id)].map((id) => {
           const on = filter === id
           const tone = id ? binTone(id) : null
           return (
@@ -80,7 +80,7 @@ export function BinsScreen({ category }: { category?: string }) {
 
       <div className="lg:col-span-7">
         <BinMap center={from} you={me && from === me ? me : null} bins={list} picked={picked} onPick={setPicked} />
-        <p className="mt-2 text-[11px] text-sub">Sample bin positions. {me && from !== me && "You're away from campus, so distances are from the campus."}</p>
+        <p className="mt-2 text-[11px] text-sub">Sample bin positions. {me && from !== me && "You're outside the mapped area, so distances are from Sohna."}</p>
       </div>
 
       <ul className="space-y-2 lg:col-span-5">
@@ -113,14 +113,7 @@ export function BinsScreen({ category }: { category?: string }) {
           )
         })}
       </ul>
-      {!list.length && (
-        <p className="tile px-4 py-6 text-center text-sm text-sub lg:col-span-12">
-          No bins of this type are mapped yet.{" "}
-          <button className="font-semibold text-green" onClick={() => navigate({ name: "guide" })}>
-            See the waste guide
-          </button>
-        </p>
-      )}
+      {!list.length && <p className="tile px-4 py-6 text-center text-sm text-sub lg:col-span-12">No bins of this type are mapped yet.</p>}
     </div>
   )
 }

@@ -13,7 +13,7 @@ export function registerDumpRoutes(app: Express, ai: GoogleGenAI | null) {
 
   // Seed Initial Realistic Dump Reports
   function seedInitialDumps() {
-    // sample reports around the Sohna campus (Gurugram district, Haryana)
+    // sample reports around Sohna (Gurugram district, Haryana)
 
     dumpReports = [
       {

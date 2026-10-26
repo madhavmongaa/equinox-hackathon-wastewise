@@ -3,7 +3,6 @@
 
 import { useSyncExternalStore } from "react"
 import type { Outcome } from "@/lib/types"
-import { AI_RULE_ID } from "@/lib/guide"
 
 const LANG = "en-IN"
 
@@ -176,13 +175,12 @@ export function stopSpeaking() {
 
 // ---------- what to say for a result ----------
 
-export function resultSpeech(item: string, category: { label: string; bin: string }, steps: string[], ruleId: string) {
+export function resultSpeech(item: string, category: { label: string; bin: string }, steps: string[], _ruleId?: string) {
   const prep = steps.length ? ` ${steps.join(". ")}.` : ""
-  const source = ruleId === AI_RULE_ID ? " This one is AI-suggested, not from the campus guide." : ""
-  return `${item}. ${category.label}, ${category.bin}.${prep}${source}`
+  return `${item}. ${category.label}, ${category.bin}.${prep}`
 }
 
-/** The spoken version of a scan answer: item, bin, steps, and where the rule came from. */
+/** The spoken version of a scan answer: item, bin and steps. */
 export function outcomeSpeech(outcome: Outcome): string {
   switch (outcome.kind) {
     case "result":
@@ -190,7 +188,7 @@ export function outcomeSpeech(outcome: Outcome): string {
     case "not_found":
       return outcome.reason === "unclear"
         ? "I couldn't tell for sure what this is. Try a clearer photo."
-        : `I couldn't find a disposal rule for ${outcome.ai?.item ?? "this item"}. Ask the campus housekeeping team.`
+        : `I'm not sure which bin ${outcome.ai?.item ?? "this item"} goes in. Check with your local waste collector.`
     case "clarify": {
       const opts = outcome.options
       const list = opts.length > 1 ? ` ${opts.slice(0, -1).join(", ")}, or ${opts[opts.length - 1]}?` : ""

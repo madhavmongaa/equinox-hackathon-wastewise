@@ -48,7 +48,7 @@ export const DEFAULT_MOCK_SCANS: HistoryEntry[] = [
     rule_found: true,
     rule_snapshot: {
       rule_id: "2.3",
-      source_text: "Food-contaminated paper and cardboard (pizza boxes, napkins) belong in the green Wet Waste bin for campus composting.",
+      source_text: "Food-contaminated paper and cardboard (pizza boxes, napkins) belong in the green Wet Waste bin for composting.",
       preparation: ["Remove any plastic dipping cups or foil liners", "Tear box into quarters if large"],
       category_label: "Wet Waste",
       bin: "Green bin",

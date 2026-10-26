@@ -1,5 +1,5 @@
 import { Cpu, Leaf, Recycle, Trash2, TriangleAlert, type LucideIcon } from "lucide-react"
-import { getCategory } from "@/lib/guide"
+import { getCategory } from "@/lib/categories"
 import { levelFor } from "@/lib/levels"
 import type { Category } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -35,7 +35,7 @@ export function CategoryChip({ categoryId, className }: { categoryId: string | n
   if (!c) {
     return (
       <span className={cn("inline-flex items-center rounded-full bg-slate px-2.5 py-1 text-[11px] font-semibold text-white", className)}>
-        Not in guide
+        Not sorted
       </span>
     )
   }

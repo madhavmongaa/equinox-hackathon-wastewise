@@ -5,7 +5,7 @@
   const band = document.getElementById("band");
   const track = document.getElementById("track");
 
-  // ten items straight from the campus waste guide (src/data/wasteGuide.json)
+  // ten everyday items and the bin each goes in
   const BINS = {
     dry: { label: "Dry Waste", bin: "Blue bin", color: "#2F6FD6" },
     wet: { label: "Wet Waste", bin: "Green bin", color: "#3C9A4E" },
@@ -14,16 +14,16 @@
     ewaste: { label: "E-waste", bin: "E-waste drop box", color: "#7A4FC9" },
   };
   const ITEMS = [
-    { name: "Plastic bottle", icon: "🥤", cat: "dry", rule: "1.1" },
-    { name: "Banana peel", icon: "🍌", cat: "wet", rule: "2.1" },
-    { name: "Battery", icon: "🔋", cat: "ewaste", rule: "5.1" },
-    { name: "Cardboard box", icon: "📦", cat: "dry", rule: "1.4" },
-    { name: "Greasy pizza box", icon: "🍕", cat: "wet", rule: "2.3" },
-    { name: "Aerosol can", icon: "🧴", cat: "hazardous", rule: "3.2" },
-    { name: "Newspaper", icon: "📰", cat: "dry", rule: "1.3" },
-    { name: "Used tissue", icon: "🧻", cat: "reject", rule: "4.1" },
-    { name: "Light bulb", icon: "💡", cat: "ewaste", rule: "5.2" },
-    { name: "Glass bottle", icon: "🍾", cat: "dry", rule: "1.5" },
+    { name: "Plastic bottle", icon: "🥤", cat: "dry" },
+    { name: "Banana peel", icon: "🍌", cat: "wet" },
+    { name: "Battery", icon: "🔋", cat: "ewaste" },
+    { name: "Cardboard box", icon: "📦", cat: "dry" },
+    { name: "Greasy pizza box", icon: "🍕", cat: "wet" },
+    { name: "Aerosol can", icon: "🧴", cat: "hazardous" },
+    { name: "Newspaper", icon: "📰", cat: "dry" },
+    { name: "Used tissue", icon: "🧻", cat: "reject" },
+    { name: "Light bulb", icon: "💡", cat: "ewaste" },
+    { name: "Glass bottle", icon: "🍾", cat: "dry" },
   ];
 
   // carousel geometry, in frame units (see the spec)
@@ -44,12 +44,11 @@
     const el = document.createElement("article");
     el.className = "card";
     el.style.setProperty("--bin", bin.color);
-    el.setAttribute("aria-label", `${item.name}: ${bin.label}, ${bin.bin} (Campus Waste Guide §${item.rule})`);
+    el.setAttribute("aria-label", `${item.name}: ${bin.label}, ${bin.bin}`);
 
     const face = document.createElement("div");
     face.className = "face";
     face.innerHTML = `
-      <span class="rule">§${item.rule}</span>
       <span class="icon" aria-hidden="true">${item.icon}</span>
       <span class="name">${item.name}</span>
       <span class="bin"><i></i>${bin.label}</span>

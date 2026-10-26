@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { ArrowLeft, Clock, ExternalLink, LocateFixed, MapPin, Navigation, Phone, RefreshCw, Search } from "lucide-react"
-import { CAMPUS } from "@/components/campus-globe"
+import { HOME_AREA } from "@/components/earth-globe"
 import { DealerMap } from "@/components/dealer-map"
 import { Button } from "@/components/ui/button"
 import { currentLocation } from "@/lib/location"
@@ -58,7 +58,7 @@ export function KabadiwalaScreen({ kinds: initialKinds = [], from }: { kinds?: S
   const locate = useCallback(async () => {
     setLocating(true)
     const here = await currentLocation()
-    setPlace(here ? { ...here, mine: true } : { ...CAMPUS, mine: false })
+    setPlace(here ? { ...here, mine: true } : { ...HOME_AREA, mine: false })
     setLocating(false)
   }, [])
 
@@ -158,9 +158,9 @@ export function KabadiwalaScreen({ kinds: initialKinds = [], from }: { kinds?: S
           <MapPin size={20} />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="font-semibold text-ink">{locating ? "Finding your location…" : place?.mine ? "Near your location" : "Near campus (Sohna)"}</p>
+          <p className="font-semibold text-ink">{locating ? "Finding your location…" : place?.mine ? "Near your location" : "Around Sohna"}</p>
           <p className="text-xs text-sub">
-            {locating ? "Allow location so we can look nearby." : place?.mine ? "Rounded to about 100 m." : "Location was blocked or unavailable, so this uses the campus."}
+            {locating ? "Allow location so we can look nearby." : place?.mine ? "Rounded to about 100 m." : "Location was blocked or unavailable, so this shows Sohna."}
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={locate} disabled={locating}>

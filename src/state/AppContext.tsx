@@ -27,7 +27,6 @@ export type Screen =
   | { name: "history" }
   | { name: "historyDetail"; id: string }
   | { name: "profile" }
-  | { name: "guide" }
   | { name: "dumps"; dumpId?: string }
   | { name: "kabadiwala"; kinds?: ScrapKind[]; from?: string }
   | { name: "cleaning" }
@@ -45,7 +44,6 @@ function screenFromHash(hash: string): { screen: Screen; chat: boolean } {
     case "leaderboard":
     case "history":
     case "profile":
-    case "guide":
     case "dumps":
     case "kabadiwala":
     case "cleaning":

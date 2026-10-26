@@ -4,7 +4,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Camera, Map as MapIcon, ScanLine, Send, Truck } from "lucide-react"
-import { CampusGlobe } from "@/components/campus-globe"
+import { EarthGlobe } from "@/components/earth-globe"
 import type { GlobeMarker } from "@/components/ui/3d-globe"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/motion"
@@ -182,7 +182,7 @@ export function DumpsScreen({ dumpId }: { dumpId?: string }) {
                     intro === "leaving" ? "pointer-events-none opacity-0" : "opacity-100"
                   )}
                 >
-                  <CampusGlobe
+                  <EarthGlobe
                     className="absolute inset-0 h-full"
                     closeUp
                     still
@@ -221,7 +221,7 @@ export function DumpsScreen({ dumpId }: { dumpId?: string }) {
         </span>
         <span className="min-w-0">
           <span className="block font-semibold text-ink">Sorting a single item?</span>
-          <span className="block text-sm text-sub">Scan it to see which campus bin it goes in.</span>
+          <span className="block text-sm text-sub">Scan it to see which bin it goes in.</span>
         </span>
       </button>
 

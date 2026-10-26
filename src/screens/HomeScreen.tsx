@@ -1,6 +1,6 @@
 import { Camera, Leaf, MapPin, MapPinned, Recycle, Sparkles } from "lucide-react"
 import { Card, Note, SectionTitle } from "@/components/ui/card"
-import { CAMPUS, CampusGlobe } from "@/components/campus-globe"
+import { HOME_AREA, EarthGlobe } from "@/components/earth-globe"
 import { LuluMascot } from "@/components/ui/LuluMascot"
 import { Logo } from "@/components/brand"
 import { IdentifyCard } from "@/components/identify-card"
@@ -68,7 +68,7 @@ export function HomeScreen() {
           </span>
         </h2>
         <p className="mx-auto mt-3 max-w-[300px] text-[15px] leading-relaxed text-sub lg:mx-0 lg:mt-5 lg:max-w-[440px] lg:text-lg">
-          {t("Not sure which bin to use? Let AI help you decide.", lang)}
+          {t("Not sure which bin to use? Lulu will tell you.", lang)}
         </p>
         <div className="relative mt-3 flex items-center justify-center lg:mt-7 lg:justify-start">
           <span className="bg-mint grid shrink-0 aspect-square place-items-center overflow-hidden rounded-full p-1">
@@ -130,7 +130,7 @@ export function HomeScreen() {
       <PickupCard index={6} className="lg:col-span-4" />
       <LeaderboardPreviewCard index={7} className="lg:col-span-4" />
 
-      {/* 7. Globe: the campus plus every reported illegal dump */}
+      {/* 7. Globe: every reported illegal dump */}
       <DumpGlobe />
 
       {/* 10. Floating Action Button — Scan with Camera */}
@@ -163,13 +163,13 @@ function QuickLink({ icon, label, note, onClick }: { icon: React.ReactNode; labe
   )
 }
 
-/** Home globe: the campus pin plus active illegal dumps, coloured by severity; a pin opens that dump. */
+/** Home globe: the home pin plus active illegal dumps, coloured by severity; a pin opens that dump. */
 function DumpGlobe() {
   const { navigate } = useApp()
   const { dumps, loaded } = useActiveDumps()
   const [hovered, setHovered] = useState<string | null>(null)
-  // open facing the campus (where the reports are), then let it spin
-  const [focus, setFocus] = useState<GlobeFocus | null>({ ...CAMPUS, distance: 3.5 })
+  // open facing the home area (where the reports are), then let it spin
+  const [focus, setFocus] = useState<GlobeFocus | null>({ ...HOME_AREA, distance: 3.5 })
   const markers = useMemo<GlobeMarker[]>(
     () => dumps.map((d) => ({ lat: d.location.lat, lng: d.location.lng, color: SEVERITY_COLOR[d.severity], size: 9, label: d.title, id: d.id })),
     [dumps]
@@ -179,19 +179,19 @@ function DumpGlobe() {
   return (
     <section className="glass flex flex-col items-center px-5 pt-6 pb-6 lg:col-span-12 lg:flex-row lg:gap-10 lg:px-10 lg:py-6">
       <div className="mint-glow w-full max-w-[360px] shrink-0 rounded-full">
-        <CampusGlobe
+        <EarthGlobe
           className="h-[300px] lg:h-[320px]"
           markers={markers}
-          label={`Rotating globe with the campus and ${dumps.length} reported dumps`}
+          label={`Rotating globe with ${dumps.length} reported dumps`}
           onMarkerHover={(m) => setHovered(m?.label ?? null)}
-          onMarkerClick={(m) => (m.id && m.id !== "campus" ? navigate({ name: "dumps", dumpId: m.id }) : navigate({ name: "dumps" }))}
+          onMarkerClick={(m) => (m.id && m.id !== "home" ? navigate({ name: "dumps", dumpId: m.id }) : navigate({ name: "dumps" }))}
           focus={focus}
           onFocusArrive={() => setFocus(null)}
         />
       </div>
       <div className="mt-3 w-full max-w-[460px] text-center lg:mt-0 lg:text-left">
         <p className="text-[11px] font-bold tracking-[0.14em] text-green uppercase">Community cleanup</p>
-        <h2 className="display mt-1 text-2xl lg:text-[32px]">Illegal dumps around campus</h2>
+        <h2 className="display mt-1 text-2xl lg:text-[32px]">Illegal dumps near you</h2>
         {loaded && dumps.length > 0 ? (
           <div className="mt-2">
             <p className="text-sm text-sub" aria-live="polite">

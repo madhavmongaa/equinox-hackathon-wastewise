@@ -37,7 +37,7 @@ export function LeaderboardScreen() {
           <LuluMascot mood="happy" size={56} />
         </span>
         <div>
-          <h1 className="display text-[34px] leading-tight">Campus Eco Leaderboard</h1>
+          <h1 className="display text-[34px] leading-tight">Eco Leaderboard</h1>
           <Mark className="mt-1 text-sm">Sort right, climb higher 🌱</Mark>
         </div>
       </div>
@@ -51,7 +51,7 @@ export function LeaderboardScreen() {
             onClick={() => setTab(t)}
             className={cn("h-11 rounded-full text-sm font-semibold transition-colors", tab === t ? "bg-mint text-green shadow-soft" : "text-sub")}
           >
-            {t === "week" ? "This Week" : t === "all" ? "All Time" : "Teams"}
+            {t === "week" ? "This Week" : t === "all" ? "All Time" : "Areas"}
           </button>
         ))}
       </div>
@@ -134,8 +134,8 @@ function TeamBoard() {
   return (
     <div className="space-y-4">
       <div className="glass p-4">
-        <p className="text-sm font-semibold">{mine ? `You're sorting for ${mine.emoji} ${mine.name}` : "Pick a team to add your points to it"}</p>
-        <p className="mb-3 text-xs text-sub">Every point you earn this week counts for your team too.</p>
+        <p className="text-sm font-semibold">{mine ? `You're sorting for ${mine.emoji} ${mine.name}` : "Pick your area to add your points to it"}</p>
+        <p className="mb-3 text-xs text-sub">Every point you earn this week counts for your area too.</p>
         <TeamPicker />
       </div>
       {!connected ? (

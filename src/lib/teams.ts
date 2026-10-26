@@ -1,4 +1,5 @@
-// Campus teams for the weekly team leaderboard. A team is just a field on the profile.
+// Area teams for the weekly team leaderboard: everyone in an area sorts for the same
+// team. A team is just a field on the profile, so new areas are one line each.
 
 export interface Team {
   id: string
@@ -8,11 +9,11 @@ export interface Team {
 }
 
 export const TEAMS: Team[] = [
-  { id: "bh1", name: "Boys Hostel 1", emoji: "🦁", color: "#2F6FD6" },
-  { id: "bh2", name: "Boys Hostel 2", emoji: "🐯", color: "#E0A526" },
-  { id: "gh", name: "Girls Hostel", emoji: "🦋", color: "#C2418F" },
-  { id: "day", name: "Day Scholars", emoji: "🚌", color: "#3C9A4E" },
-  { id: "staff", name: "Faculty & Staff", emoji: "📚", color: "#7A4FC9" },
+  { id: "sohna", name: "Sohna", emoji: "🌿", color: "#3C9A4E" },
+  { id: "badshahpur", name: "Badshahpur", emoji: "🦁", color: "#2F6FD6" },
+  { id: "golf-course-ext", name: "Golf Course Ext. Road", emoji: "⛳", color: "#E0A526" },
+  { id: "south-city", name: "South City", emoji: "🏙️", color: "#C2418F" },
+  { id: "old-gurugram", name: "Old Gurugram", emoji: "🛺", color: "#7A4FC9" },
 ]
 
 export function teamById(id: string | null | undefined) {

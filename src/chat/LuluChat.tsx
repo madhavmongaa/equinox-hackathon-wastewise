@@ -7,14 +7,14 @@ import { Sheet } from "@/components/ui/sheet"
 import { LuluMascot } from "@/components/ui/LuluMascot"
 import { getLang } from "@/lib/i18n"
 import { CategoryChip } from "@/components/brand"
-import { ANALYSIS_STEPS, ClarificationCard, CorrectionSheet, ErrorCard, OutcomeView, ResultActions, useAnalysisStep } from "@/components/scan-views"
+import { ANALYSIS_STEPS, ClarificationCard, CorrectionSheet, ErrorCard, OutcomeView, ResultActions, useAnalysisStep, AiNote } from "@/components/scan-views"
 import { MicButton, useVoiceInput } from "@/components/voice"
 import { BoardList, HistoryRow, LevelProgress, NotConnectedNote, StatTile } from "@/components/widgets"
 import { useLeaderboard, useMyRank } from "@/hooks/useLeaderboard"
 import { useStats } from "@/hooks/useStats"
 import { interpret } from "@/lib/flow"
 import { askLulu, type LuluAI, type LuluTurn } from "@/lib/gemini"
-import { getCategory, guide, ruleLabel, rulesForCategory } from "@/lib/guide"
+import { getCategory } from "@/lib/categories"
 import { levelFor } from "@/lib/levels"
 import type { ImageInput, LuluMood, Outcome, ScanAI, ScanInput } from "@/lib/types"
 import { cn, uuid } from "@/lib/utils"
@@ -25,9 +25,9 @@ import { useApp } from "@/state/AppContext"
 import { useCapture } from "@/state/capture"
 
 const WELCOME =
-  "Hi! I'm Lulu 👋 Show me any item and I'll tell you which bin it goes in, using our campus waste guide. Scan it, upload a photo, or just describe it. You can also ask me anything else."
+  "Hi! I'm Lulu 👋 Show me any item and I'll tell you which bin it goes in and how to prepare it. Scan it, upload a photo, or just describe it. You can also ask me anything else."
 const EXPLAIN =
-  "I identify the item, then look it up in the Zenith campus waste guide. If the guide has a rule for it, I show you that exact rule. If it doesn't, I suggest a bin myself and mark it as AI-suggested. If I'm not sure what the item is, I ask you first."
+  "I work out what the item is and what it's made of, then pick the right bin using standard Indian waste segregation (dry, wet, hazardous, reject and e-waste) and tell you how to prepare it. If I'm not sure what the item is, I ask you first."
 const READ_ALOUD_KEY = "wastewise.readAloud.v1"
 
 /** What Lulu says out loud: her message, plus the answer the card shows (her text leaves the bin out). */
@@ -466,6 +466,7 @@ export function LuluChat() {
           <Send size={18} />
         </button>
       </form>
+      <AiNote className="px-4 pb-2 text-center" />
 
       <CorrectionSheet
         open={!!correctingId}
@@ -561,7 +562,7 @@ function ChatCard({ card, messageId, onAnswer, onRetakePhoto, onGotIt, onCorrect
     case "leaderboard":
       return <LeaderboardChatCard onNavigate={onNavigate} />
     case "category":
-      return <CategoryChatCard categoryId={card.categoryId} />
+      return <CategoryChatCard categoryId={card.categoryId} onNavigate={onNavigate} />
   }
 }
 
@@ -657,28 +658,16 @@ function LeaderboardChatCard({ onNavigate }: { onNavigate: () => void }) {
   )
 }
 
-function CategoryChatCard({ categoryId }: { categoryId: string }) {
+function CategoryChatCard({ categoryId, onNavigate }: { categoryId: string; onNavigate: () => void }) {
+  const { navigate } = useApp()
   const c = getCategory(categoryId)!
-  const rules = rulesForCategory(categoryId)
   return (
     <MiniCard>
-      <div className="mb-2 flex items-center justify-between gap-2">
+      <div className="mb-1 flex items-center justify-between gap-2">
         <h3 className="display text-base">{c.bin}</h3>
         <CategoryChip categoryId={categoryId} />
       </div>
-      {rules.length === 0 ? (
-        <p className="text-sm text-sub">The campus guide has no items listed for this bin.</p>
-      ) : (
-        <ul className="space-y-1.5 text-sm">
-          {rules.map((r) => (
-            <li key={r.rule_id} className="flex gap-2">
-              <span className="shrink-0 text-xs font-semibold text-green">{ruleLabel(r.rule_id).replace("Campus Waste Guide ", "")}</span>
-              <span className="capitalize">{r.item_names[0]}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-      <p className="mt-2 text-[11px] text-sub">From the {guide.guide_name}</p>
+      <SeeAll label={`Find the nearest ${c.bin.toLowerCase()}`} onClick={() => (onNavigate(), navigate({ name: "bins", category: c.id }))} />
     </MiniCard>
   )
 }

@@ -24,7 +24,7 @@ export function errorMessage(err: unknown) {
   if (err instanceof AIError && err.kind === "not_configured") {
     return "Gemini isn't set up yet — add VITE_GEMINI_API_KEY to .env.local and restart the app."
   }
-  return "Couldn't reach the AI right now. Check your connection and try again."
+  return "Couldn't reach Lulu right now. Check your connection and try again."
 }
 
 export function ScanScreen({ start }: { start?: ScanStart }) {

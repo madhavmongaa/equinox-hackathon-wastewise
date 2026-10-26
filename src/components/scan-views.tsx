@@ -10,7 +10,7 @@ import { Sheet } from "@/components/ui/sheet"
 import { CategoryBadge, Thumb, categoryIcon, confidenceLabel } from "@/components/brand"
 import { SegmentedPhoto } from "@/components/segmented-photo"
 import { ListenButton } from "@/components/voice"
-import { AI_RULE_ID, guide, ruleLabel, suggestionItems } from "@/lib/guide"
+import { CATEGORIES, SUGGESTIONS } from "@/lib/categories"
 import { binTone, shadeFor, type BinTone } from "@/lib/binColors"
 import { cropThumbnail } from "@/lib/segment"
 import { outcomeSpeech, resultSpeech } from "@/lib/voice"
@@ -20,7 +20,7 @@ import { t } from "@/lib/i18n"
 
 // ---------- analysis ----------
 
-export const ANALYSIS_STEPS = ["Identifying item…", "Checking campus waste guide…", "Preparing your answer…"]
+export const ANALYSIS_STEPS = ["Identifying item…", "Choosing the right bin…", "Preparing your answer…"]
 
 /** Steps tick off in order while the request runs. */
 export function useAnalysisStep(active: boolean) {
@@ -145,7 +145,8 @@ export function ClarificationCard({ ai, question, options, thumbnail, onAnswer, 
 
 // ---------- result ----------
 
-export function EvidenceBox({ ruleId, sourceText, compact }: { ruleId: string; sourceText: string; compact?: boolean }) {
+/** "Why this bin": the short explanation that comes with every answer. */
+export function EvidenceBox({ sourceText, compact }: { ruleId?: string; sourceText: string; compact?: boolean }) {
   const [open, setOpen] = useState(true)
   return (
     <div className="tile">
@@ -159,12 +160,7 @@ export function EvidenceBox({ ruleId, sourceText, compact }: { ruleId: string; s
       </button>
       {open && (
         <div className={cn("px-4 pb-4", compact && "pb-3")}>
-          {ruleId === AI_RULE_ID ? (
-            <p className="text-sm leading-relaxed text-ink">{sourceText}</p>
-          ) : (
-            <blockquote className="border-l-4 border-green pl-3 text-sm leading-relaxed text-ink">“{sourceText}”</blockquote>
-          )}
-          <Mark className="mt-2 text-[11px]">{ruleLabel(ruleId)}</Mark>
+          <p className="text-sm leading-relaxed text-ink">{sourceText}</p>
         </div>
       )}
     </div>
@@ -266,8 +262,8 @@ export function NotFoundCard({ item, reason, compact, actions }: { item?: string
       </div>
       <p className="tile mt-3 px-4 py-3 text-sm leading-relaxed text-ink">
         {reason === "unclear"
-          ? "I couldn't tell for sure what this is, so I won't guess. Try a clearer photo, or ask the campus housekeeping/sustainability team."
-          : "The campus guide doesn't list this item. You can ask the campus housekeeping/sustainability team."}
+          ? "I couldn't tell for sure what this is, so I won't guess. Try a clearer photo, or describe it in a few words."
+          : "I'm not sure which bin this goes in. Check with your local waste collector, or describe it a little more."}
       </p>
       {actions}
     </div>
@@ -281,7 +277,7 @@ export function ErrorCard({ onRetry, message, compact }: { onRetry: () => void; 
         <span className="bg-mint grid shrink-0 aspect-square place-items-center overflow-hidden rounded-full p-1"><LuluMascot mood="sorry" size={compact ? 44 : 64} /></span>
         <div>
           <h2 className={cn("display", compact ? "text-xl" : "text-[26px]")}>Something went wrong</h2>
-          <p className="mt-1 text-sm text-sub">{message ?? "Couldn't reach the AI right now. Check your connection and try again."}</p>
+          <p className="mt-1 text-sm text-sub">{message ?? "Couldn't reach Lulu right now. Check your connection and try again."}</p>
         </div>
       </div>
       <Button className="mt-4 w-full" onClick={onRetry}>
@@ -347,13 +343,25 @@ export function OutcomeView({
   compact?: boolean
   actions?: React.ReactNode
 }) {
-  if (outcome.kind === "multi") {
-    return <MultiResultView outcome={outcome} image={image} compact={compact} actions={actions} speakKey={speakKey} />
-  }
-  if (outcome.kind === "result") {
-    return <ResultCard ai={outcome.ai} rule={outcome.rule} category={outcome.category} image={image} corrected={corrected} compact={compact} actions={actions} speakKey={speakKey} />
-  }
-  return <NotFoundCard item={outcome.ai?.item} reason={outcome.reason} compact={compact} actions={actions} />
+  const view =
+    outcome.kind === "multi" ? (
+      <MultiResultView outcome={outcome} image={image} compact={compact} actions={actions} speakKey={speakKey} />
+    ) : outcome.kind === "result" ? (
+      <ResultCard ai={outcome.ai} rule={outcome.rule} category={outcome.category} image={image} corrected={corrected} compact={compact} actions={actions} speakKey={speakKey} />
+    ) : (
+      <NotFoundCard item={outcome.ai?.item} reason={outcome.reason} compact={compact} actions={actions} />
+    )
+  return (
+    <>
+      {view}
+      {!compact && <AiNote className="mt-3 text-center" />}
+    </>
+  )
+}
+
+/** The one place answers are said to be AI-generated: small print under results and in the chat. */
+export function AiNote({ className }: { className?: string }) {
+  return <p className={cn("text-[10px] leading-snug text-sub/80", className)}>Answers are AI-generated and can be wrong. Follow your local collection rules if they differ.</p>
 }
 
 // ---------- multi-item ----------
@@ -409,11 +417,11 @@ function groupByBin(colored: ColoredPart[]): BinGroup[] {
     const cat = cp.part.outcome.kind === "result" ? cp.part.outcome.category : null
     const key = cat?.id ?? "unsorted"
     if (!groups.has(key)) {
-      groups.set(key, { key, label: cat?.label ?? "Not sorted", bin: cat?.bin ?? "Ask campus housekeeping", tone: cp.tone, items: [] })
+      groups.set(key, { key, label: cat?.label ?? "Not sorted", bin: cat?.bin ?? "Ask your waste collector", tone: cp.tone, items: [] })
     }
     groups.get(key)!.items.push(cp)
   }
-  const order = [...guide.categories.map((c) => c.id), "unsorted"]
+  const order = [...CATEGORIES.map((c) => c.id), "unsorted"]
   return [...groups.values()].sort((a, b) => order.indexOf(a.key) - order.indexOf(b.key))
 }
 
@@ -567,12 +575,6 @@ function ItemRow({ cp, crop, open, onToggle }: { cp: ColoredPart; crop: string |
           <span className="block truncate font-semibold capitalize text-ink">{part.ai.item}</span>
           <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-sub">
             {part.ai.material && <span className="truncate">{part.ai.material}</span>}
-            {ruleId &&
-              (ruleId === AI_RULE_ID ? (
-                <span className="chip-ai rounded-full px-2 py-0.5 text-[10px] font-bold">AI-suggested</span>
-              ) : (
-                <span className="rounded-full bg-mint px-2 py-0.5 text-[10px] font-bold text-green">Guide §{ruleId}</span>
-              ))}
           </span>
         </span>
         <ChevronDown size={18} className={cn("shrink-0 text-sub transition-transform", open && "rotate-180")} aria-hidden />
@@ -585,7 +587,7 @@ function ItemRow({ cp, crop, open, onToggle }: { cp: ColoredPart; crop: string |
               <EvidenceBox ruleId={outcome.rule.rule_id} sourceText={outcome.rule.source_text} compact />
             </>
           ) : (
-            <p className="tile px-4 py-3 text-sm text-ink">No disposal rule for this one. Ask the campus housekeeping/sustainability team.</p>
+            <p className="tile px-4 py-3 text-sm text-ink">Not sure which bin this goes in. Check with your local waste collector.</p>
           )}
         </div>
       )}
@@ -600,7 +602,7 @@ export function CorrectionSheet({ open, onClose, onSubmit }: { open: boolean; on
   useEffect(() => {
     if (open) setValue("")
   }, [open])
-  const chips = suggestionItems.slice(0, 12)
+  const chips = SUGGESTIONS.slice(0, 12)
   return (
     <Sheet open={open} onClose={onClose} title="What is this item actually?" labelledBy="correction-title">
       <form

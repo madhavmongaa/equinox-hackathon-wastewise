@@ -1,7 +1,7 @@
 {
   "name": "WasteWise — Sort smarter. Waste less.",
   "short_name": "WasteWise",
-  "description": "AI waste sorting for the campus: scan an item, see the right bin.",
+  "description": "Scan any item and see the right bin, with simple steps to prepare it.",
   "start_url": "/app.html",
   "scope": "/",
   "display": "standalone",

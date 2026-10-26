@@ -5,8 +5,8 @@ import { istDate, istWeekId, istYesterday } from "@/lib/dates"
 import type { Profile } from "@/lib/types"
 
 export const POINTS = {
-  guideResult: 10,
-  notInGuide: 3,
+  sortedResult: 10,
+  unsorted: 3,
   clarification: 5,
   correction: 5,
   firstScanOfDay: 5,
@@ -114,9 +114,9 @@ export function planAward(prev: Profile, action: ScoredAction, now = new Date())
   const events: AwardEvent[] = []
   const writes: AwardWrite[] = []
 
-  const base = blocked ? 0 : action.ruleFound ? POINTS.guideResult : POINTS.notInGuide
+  const base = blocked ? 0 : action.ruleFound ? POINTS.sortedResult : POINTS.unsorted
   const dayBonus = !blocked && firstToday ? POINTS.firstScanOfDay : 0
-  if (base) events.push({ amount: base, label: action.ruleFound ? "Sorted with the guide" : "Scan logged" })
+  if (base) events.push({ amount: base, label: action.ruleFound ? "Sorted right" : "Scan logged" })
   if (dayBonus) events.push({ amount: dayBonus, label: "First scan of the day" })
 
   writes.push({

@@ -1,5 +1,5 @@
 // Your impact: what sorting right adds up to (estimates from scan history), plus the
-// campus total from cleaned dumps.
+// community total from cleaned dumps.
 
 import { useEffect, useMemo, useState } from "react"
 import { ArrowLeft, Info, Leaf, Recycle, ScanLine, Share2, Trees, Truck } from "lucide-react"
@@ -9,11 +9,11 @@ import { Card } from "@/components/ui/card"
 import { CountUp } from "@/components/motion"
 import type { DumpReport } from "@/dumps/types"
 import { binTone } from "@/lib/binColors"
-import { guide } from "@/lib/guide"
+import { CATEGORIES } from "@/lib/categories"
 import { DUMP_CO2_PER_KG, IMPACT_FACTORS, formatKg, impactOf, treeText } from "@/lib/impact"
 import { useApp } from "@/state/AppContext"
 
-const label = (id: string) => guide.categories.find((c) => c.id === id)?.label ?? "Not in the guide"
+const label = (id: string) => CATEGORIES.find((c) => c.id === id)?.label ?? "Not sorted"
 
 export function ImpactScreen() {
   const { navigate, history, toast } = useApp()
@@ -26,7 +26,7 @@ export function ImpactScreen() {
       toast("Couldn't make the image right now.", "error")
     }
   }
-  const campus = useCampusCleanup()
+  const cleanup = useCleanupTotals()
   const maxWeek = Math.max(0.001, ...me.weeks.map((w) => w.co2Kg))
   const thisWeek = me.weeks[me.weeks.length - 1]
 
@@ -114,17 +114,17 @@ export function ImpactScreen() {
         </>
       )}
 
-      {/* campus */}
+      {/* community cleanup */}
       <Card className="lg:col-span-7">
         <div className="flex items-center gap-2">
           <Truck size={18} className="text-green" />
-          <h2 className="display text-lg">Campus cleanup</h2>
+          <h2 className="display text-lg">Community cleanup</h2>
         </div>
-        <p className="mb-4 text-sm text-sub">Illegal dumps reported by students and cleared by crews</p>
+        <p className="mb-4 text-sm text-sub">Illegal dumps reported by people like you and cleared by crews</p>
         <div className="grid grid-cols-3 gap-2">
-          <MiniStat value={campus ? <CountUp value={campus.cleaned} /> : "…"} label="dumps cleared" />
-          <MiniStat value={campus ? <CountUp value={campus.kg} format={formatKg} /> : "…"} label="waste recovered" />
-          <MiniStat value={campus ? <CountUp value={campus.kg * DUMP_CO2_PER_KG} format={formatKg} /> : "…"} label="CO₂e saved" />
+          <MiniStat value={cleanup ? <CountUp value={cleanup.cleaned} /> : "…"} label="dumps cleared" />
+          <MiniStat value={cleanup ? <CountUp value={cleanup.kg} format={formatKg} /> : "…"} label="waste recovered" />
+          <MiniStat value={cleanup ? <CountUp value={cleanup.kg * DUMP_CO2_PER_KG} format={formatKg} /> : "…"} label="CO₂e saved" />
         </div>
         <Button variant="secondary" size="sm" className="mt-4" onClick={() => navigate({ name: "dumps" })}>
           See the dumps map
@@ -185,7 +185,7 @@ function MiniStat({ value, label }: { value: React.ReactNode; label: string }) {
 }
 
 /** Cleared dumps (all time) and how much waste crews recovered from them. */
-export function useCampusCleanup() {
+export function useCleanupTotals() {
   const [data, setData] = useState<{ cleaned: number; kg: number } | null>(null)
   useEffect(() => {
     let alive = true

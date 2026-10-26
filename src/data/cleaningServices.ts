@@ -1,4 +1,4 @@
-// Cleaning services around the campus (Sohna / Gurugram), gathered from each provider's
+// Cleaning services around Sohna / Gurugram, gathered from each provider's
 // own page or public business listing on 24 Oct 2026. Every entry links to its source.
 // Prices are only included where the provider's page shows them; check before booking.
 
@@ -120,6 +120,6 @@ export const CLEANING_PROVIDERS: CleaningProvider[] = [
     bookUrl: "https://m.indiamart.com/jbm-builders/housekeeping-services.html",
     bookLabel: "IndiaMART listing",
     sourceUrl: "https://m.indiamart.com/jbm-builders/housekeeping-services.html",
-    note: "Monthly housekeeping contracts for institutions; suits campus or hostel needs rather than one-off home cleaning.",
+    note: "Monthly housekeeping contracts for institutions; suits offices, schools and societies rather than one-off home cleaning.",
   },
 ]

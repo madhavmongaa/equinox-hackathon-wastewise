@@ -38,10 +38,10 @@ export const SnapReportModal: React.FC<SnapReportModalProps> = ({
   const [analysisResult, setAnalysisResult] = useState<AIDumpAnalysisResult | null>(null);
 
   // Geo-location state
-  // default to the Sohna campus area until GPS gives the real spot
+  // default to Sohna until GPS gives the real spot
   const [lat, setLat] = useState<number>(28.25);
   const [lng, setLng] = useState<number>(77.07);
-  const [address, setAddress] = useState<string>('Near Sohna campus, Sector 4, Sohna');
+  const [address, setAddress] = useState<string>('Sector 4, Sohna');
   const [accuracyMeters, setAccuracyMeters] = useState<number>(5);
   const [fetchingGps, setFetchingGps] = useState(false);
 
@@ -54,7 +54,7 @@ export const SnapReportModal: React.FC<SnapReportModalProps> = ({
   const [hazardScore, setHazardScore] = useState<number>(7);
   const { profile } = useApp();
   // reported under the leaderboard nickname, if there is one
-  const [citizenName, setCitizenName] = useState(profile?.displayName ?? 'Campus student');
+  const [citizenName, setCitizenName] = useState(profile?.displayName ?? 'A WasteWise user');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 

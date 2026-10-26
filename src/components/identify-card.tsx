@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { ArrowRight, Camera, FolderOpen } from "lucide-react"
-import { Card, Mark } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { MicButton, useVoiceInput } from "@/components/voice"
 import { cn } from "@/lib/utils"
 import type { ImageInput } from "@/lib/types"
@@ -36,9 +36,6 @@ export function IdentifyCard({ onImage, onText, index, className }: IdentifyCard
     <Card index={index} className={cn("lg:p-7", className)}>
       <div className="flex items-start justify-between gap-2">
         <h2 className="display text-[28px] leading-tight">{t("Identify your waste", lang)}</h2>
-        <Mark className="mt-1 shrink-0 text-xs">
-          Guide first
-        </Mark>
       </div>
       <p className="mt-1 text-sm text-sub">
         {t("Snap it, upload it, or tell Lulu what it is", lang)}

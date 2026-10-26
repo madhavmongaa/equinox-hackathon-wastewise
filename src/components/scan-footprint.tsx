@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react"
 import { MapPin } from "lucide-react"
-import { CampusGlobe } from "@/components/campus-globe"
+import { EarthGlobe } from "@/components/earth-globe"
 import type { GlobeFocus, GlobeMarker } from "@/components/ui/3d-globe"
 import { Switch } from "@/components/ui/switch"
 import { binTone } from "@/lib/binColors"
@@ -52,10 +52,10 @@ export function ScanFootprint() {
 
       {located.length > 0 ? (
         <div className="mint-glow mx-auto mt-2 w-full max-w-[320px] rounded-full">
-          <CampusGlobe
+          <EarthGlobe
             className="h-[260px]"
             still
-            showCampus={false}
+            showHome={false}
             markers={markers}
             label={`Globe with ${located.length} places where you sorted items`}
             focus={focus}

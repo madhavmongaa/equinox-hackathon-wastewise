@@ -9,7 +9,7 @@ import { HistoryRow } from "@/components/widgets"
 import { EvidenceBox, NotFoundCard, PrepSteps } from "@/components/scan-views"
 import { CategoryBadge, Thumb, confidenceLabel } from "@/components/brand"
 import { dayLabel } from "@/lib/dates"
-import { getCategory, guide } from "@/lib/guide"
+import { getCategory, CATEGORIES } from "@/lib/categories"
 import { mockScanStore } from "@/lib/mockScansStore"
 import { useApp } from "@/state/AppContext"
 
@@ -58,13 +58,13 @@ export function HistoryScreen() {
         <>
           <div className="no-scrollbar -mx-4 mb-4 flex gap-2 overflow-x-auto px-4">
             <Chip active={filter === "all"} onClick={() => setFilter("all")}>All</Chip>
-            {guide.categories.map((c) => (
+            {CATEGORIES.map((c) => (
               <Chip key={c.id} active={filter === c.id} onClick={() => setFilter(c.id)}>
                 <span className="h-2.5 w-2.5 rounded-full" style={{ background: c.color }} />
                 {c.label}
               </Chip>
             ))}
-            <Chip active={filter === "none"} onClick={() => setFilter("none")}>Not in guide</Chip>
+            <Chip active={filter === "none"} onClick={() => setFilter("none")}>Not sorted</Chip>
           </div>
           {groups.length === 0 && <p className="py-8 text-center text-sm text-sub">Nothing in this category yet.</p>}
           <div className="space-y-5">
@@ -140,7 +140,7 @@ export function HistoryDetailScreen({ id }: { id: string }) {
         </div>
         {entry.corrected_item && (
           <div className="tile px-4 py-3 text-sm">
-            <p><span className="font-semibold">AI identified:</span> {entry.ai_item}</p>
+            <p><span className="font-semibold">First identified as:</span> {entry.ai_item}</p>
             <p><span className="font-semibold">You corrected to:</span> {entry.corrected_item}</p>
           </div>
         )}

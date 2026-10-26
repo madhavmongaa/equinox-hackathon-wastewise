@@ -78,7 +78,7 @@ export function Avatar({ emoji, size = 40, ring }: { emoji: string; size?: numbe
 export function NotConnectedNote() {
   return (
     <p className="glass rounded-[16px] px-4 py-4 text-center text-sm text-ink">
-      The campus leaderboard isn't connected yet. Add the Firebase settings to <code className="text-xs">.env.local</code> to turn it on.
+      The leaderboard isn't connected yet. Add the Firebase settings to <code className="text-xs">.env.local</code> to turn it on.
     </p>
   )
 }

@@ -1,4 +1,4 @@
-// All day/week boundaries use IST (Asia/Kolkata), so the campus shares one calendar.
+// All day/week boundaries use IST (Asia/Kolkata), so everyone shares one calendar.
 
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000
 

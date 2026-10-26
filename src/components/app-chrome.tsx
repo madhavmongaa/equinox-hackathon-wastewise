@@ -195,7 +195,7 @@ export function JoinSheet() {
             <LuluMascot mood="happy" size={60} />
           </span>
           <h2 id="join-title" className="display text-2xl leading-tight">
-            You earned your first Eco Points! 🌱 Pick a nickname for the campus leaderboard.
+            You earned your first Eco Points! 🌱 Pick a nickname for the leaderboard.
           </h2>
         </div>
         <NicknameFields name={name} setName={setName} avatar={avatar} setAvatar={setAvatar} error={error} />
@@ -253,7 +253,7 @@ export function LevelUpCard() {
         <div className="mt-2 text-5xl" aria-hidden="true">{levelUp.badge}</div>
         <Mark className="mt-3 text-base">New level!</Mark>
         <h2 id="levelup-title" className="display mt-2 text-4xl leading-tight">You're now a {levelUp.name}!</h2>
-        <p className="mt-2 text-sm text-sub">Every item sorted right helps the campus. Keep going!</p>
+        <p className="mt-2 text-sm text-sub">Every item sorted right helps your city. Keep going!</p>
         <Button size="lg" className="mt-6 w-full" onClick={dismissLevelUp}>
           Keep sorting
         </Button>

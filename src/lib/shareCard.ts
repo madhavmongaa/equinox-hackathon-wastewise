@@ -85,7 +85,7 @@ async function draw(card: ShareCard): Promise<HTMLCanvasElement> {
     ctx.fillStyle = "#101410"
     ctx.font = display(64)
     ctx.fillText(card.kind === "impact" ? "Every item sorted right" : "Sorting right, all week", 80, 810)
-    ctx.fillText("helps the campus 🌱", 80, 885)
+    ctx.fillText("keeps my city clean 🌱", 80, 885)
   } else {
     const [before, after] = await Promise.all([loadImage(card.before), card.after ? loadImage(card.after) : Promise.resolve(null)])
     const w = (SIZE - 160 - 20) / 2
@@ -120,7 +120,7 @@ async function draw(card: ShareCard): Promise<HTMLCanvasElement> {
     ctx.fillText(title, 80, 770)
     ctx.font = body(38)
     ctx.fillStyle = GREEN
-    ctx.fillText(`${card.kg} of waste cleared near campus`, 80, 835)
+    ctx.fillText(`${card.kg} of waste cleared`, 80, 835)
   }
   return c
 }

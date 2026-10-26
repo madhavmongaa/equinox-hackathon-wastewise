@@ -21,13 +21,6 @@ export interface Rule {
   source_text: string
 }
 
-export interface WasteGuide {
-  guide_name: string
-  version?: string
-  categories: Category[]
-  rules: Rule[]
-}
-
 export interface QA {
   question: string
   answer: string
@@ -43,7 +36,7 @@ export interface ScanAI {
   clarifying_options: string[]
   rule_found: boolean
   rule_id: string | null
-  /** The model's own rule, filled only when the guide has no matching rule. */
+  /** The disposal rule the model writes for the item (bin, steps, why). */
   generated_rule?: GeneratedRule | null
   reasoning_note: string
   /** One entry per item when the photo or description holds two or more items. */
@@ -100,7 +93,7 @@ export interface ScanInput {
   correctedItem?: string
 }
 
-/** The app's decision: a guide rule when one matches, else the model's AI-suggested rule. */
+/** The app's decision from the model's answer: a result, a question to ask, or not sure. */
 export type Outcome =
   | { kind: "clarify"; ai: ScanAI; question: string; options: string[] }
   | { kind: "result"; ai: ScanAI; rule: Rule; category: Category }
@@ -150,7 +143,7 @@ export interface Profile {
   lastActiveDate: string
   scoredToday: number
   showOnLeaderboard: boolean
-  /** campus team (hostel/block) id, see src/lib/teams.ts */
+  /** area team id, see src/lib/teams.ts */
   team?: string
   dumpsReported?: number
   challengesCompleted?: number

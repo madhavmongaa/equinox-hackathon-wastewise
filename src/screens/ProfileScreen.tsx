@@ -14,7 +14,7 @@ import { ThemeChoice } from "@/components/theme-toggle"
 import { Avatar, StatTile } from "@/components/widgets"
 import { useMyRank } from "@/hooks/useLeaderboard"
 import { useStats } from "@/hooks/useStats"
-import { guide } from "@/lib/guide"
+import { CATEGORIES } from "@/lib/categories"
 import { BADGES, LEVELS } from "@/lib/levels"
 import { POINTS } from "@/lib/points"
 import { AVATARS, NICKNAME_HINT, validateNickname } from "@/lib/nickname"
@@ -29,7 +29,7 @@ export function ProfileScreen() {
   const [editing, setEditing] = useState(false)
 
   const maxCat = Math.max(1, ...Object.values(s.byCategory))
-  const cats = [...guide.categories.map((c) => ({ id: c.id, label: c.label, color: c.color })), { id: "none", label: "Not in guide", color: "#5B6770" }]
+  const cats = [...CATEGORIES.map((c) => ({ id: c.id, label: c.label, color: c.color })), { id: "none", label: "Not sorted", color: "#5B6770" }]
 
   const newBadges = useNewBadges(profile)
 
@@ -174,9 +174,9 @@ export function ProfileScreen() {
           </div>
           <span className="pill-glass px-2.5 py-0.5 text-[11px] font-bold text-green">Earn on every scan</span>
         </div>
-        <p className="mb-3 text-xs text-sub">Experience points (XP) are awarded for each item you identify and correctly prepare for campus recycling.</p>
+        <p className="mb-3 text-xs text-sub">Experience points (XP) are awarded for each item you identify and prepare for recycling.</p>
         <div className="space-y-2">
-          <XpRuleRow icon="📸" title="Successful Item Scan" desc="Matched to campus waste guide rule" xp={`+${POINTS.guideResult} XP`} />
+          <XpRuleRow icon="📸" title="Successful Item Scan" desc="Item identified and sorted into a bin" xp={`+${POINTS.sortedResult} XP`} />
           <XpRuleRow icon="🌅" title="First Scan of the Day" desc="Daily active sorter bonus" xp={`+${POINTS.firstScanOfDay} XP`} />
           <XpRuleRow icon="💬" title="Clarification Answered" desc="Helped Lulu verify material details" xp={`+${POINTS.clarification} XP`} />
           <XpRuleRow icon="🛠️" title="Community Correction" desc="Fixed an item identification" xp={`+${POINTS.correction} XP`} />
@@ -197,7 +197,7 @@ export function ProfileScreen() {
           <StatTile icon={<Flame size={16} />} value={s.streak} label="Day streak" />
           <StatTile icon={<Award size={16} />} value={profile ? BADGES.filter((b) => b.earned(profile)).length : 0} label="Badges" />
         </div>
-        {storeMode === "local" && <p className="mt-3 text-xs text-sub">Weekly rank appears once the campus leaderboard is connected.</p>}
+        {storeMode === "local" && <p className="mt-3 text-xs text-sub">Weekly rank appears once the leaderboard is connected.</p>}
       </Card>
 
       {/* 5. What you've sorted */}
@@ -232,8 +232,8 @@ export function ProfileScreen() {
 
       {/* 5c. Team */}
       <Card index={5}>
-        <h2 className="display text-lg">Your team</h2>
-        <p className="mb-3 text-xs text-sub">Your weekly points also count for your team on the leaderboard.</p>
+        <h2 className="display text-lg">Your area</h2>
+        <p className="mb-3 text-xs text-sub">Your weekly points also count for your area on the leaderboard, and Home shows its collection times.</p>
         <TeamPicker className="sm:grid-cols-2" />
       </Card>
 
@@ -266,7 +266,7 @@ export function ProfileScreen() {
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--ww-line)] pt-4">
           <div>
             <h2 className="display text-lg">Language</h2>
-            <p className="text-xs text-sub">Menus, Home and Lulu's replies. The campus guide's rules stay in English.</p>
+            <p className="text-xs text-sub">Menus, Home and Lulu's replies.</p>
           </div>
           <LanguageChoice />
         </div>
@@ -294,11 +294,10 @@ export function ProfileScreen() {
 
       <Card index={7} className="lg:col-span-2">
         <h2 className="display mb-3 text-lg">More</h2>
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-          <MoreLink emoji="📘" title="Campus waste guide" desc="Every bin and its rules" onClick={() => navigate({ name: "guide" })} />
-          <MoreLink emoji="🗺️" title="Campus bin map" desc="Nearest bin of each colour" onClick={() => navigate({ name: "bins" })} />
+        <div className="grid gap-2 sm:grid-cols-3">
+          <MoreLink emoji="🗺️" title="Bin map" desc="Nearest bin of each colour" onClick={() => navigate({ name: "bins" })} />
           <MoreLink emoji="🌍" title="Your impact" desc="CO₂ and landfill savings" onClick={() => navigate({ name: "impact" })} />
-          <MoreLink emoji="📊" title="Campus dashboard" desc="For staff: dumps and participation" onClick={() => navigate({ name: "admin" })} />
+          <MoreLink emoji="📊" title="Community dashboard" desc="Dumps and participation by area" onClick={() => navigate({ name: "admin" })} />
         </div>
       </Card>
 

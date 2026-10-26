@@ -4,7 +4,6 @@ import { ReminderTicker } from "@/components/home-extras"
 import { AccountScreen } from "@/screens/AccountScreen"
 import { CleaningScreen } from "@/screens/CleaningScreen"
 import { DumpsScreen } from "@/screens/DumpsScreen"
-import { GuideScreen } from "@/screens/GuideScreen"
 import { KabadiwalaScreen } from "@/screens/KabadiwalaScreen"
 import { HistoryDetailScreen, HistoryScreen } from "@/screens/HistoryScreen"
 import { HomeScreen } from "@/screens/HomeScreen"
@@ -32,8 +31,6 @@ function CurrentScreen() {
       return <HistoryDetailScreen id={screen.id} />
     case "profile":
       return <ProfileScreen />
-    case "guide":
-      return <GuideScreen />
     case "dumps":
       return <DumpsScreen key={screen.dumpId ?? "dumps"} dumpId={screen.dumpId} />
     case "cleaning":
