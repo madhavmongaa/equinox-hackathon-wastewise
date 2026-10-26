@@ -119,7 +119,7 @@ export function LuluFab() {
   const { setChatOpen, chatOpen } = useApp()
   if (chatOpen) return null
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-[84px] z-40 mx-auto w-full max-w-[480px] px-4 md:max-w-[720px] lg:bottom-8 lg:max-w-none lg:px-8">
+    <div className="ww-fab-hide pointer-events-none fixed inset-x-0 bottom-[84px] z-40 mx-auto w-full max-w-[480px] px-4 md:max-w-[720px] lg:bottom-8 lg:max-w-none lg:px-8">
       <button
         onClick={() => setChatOpen(true)}
         aria-label="Chat with Lulu"

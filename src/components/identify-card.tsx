@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { ArrowRight, Camera, FolderOpen } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { MicButton, useVoiceInput } from "@/components/voice"
@@ -26,6 +26,20 @@ export function IdentifyCard({ onImage, onText, index, className }: IdentifyCard
       onText(t)
     },
   })
+  const cardRef = useRef<HTMLDivElement>(null)
+
+  // on phones the floating Scan and Lulu buttons would cover this card, so they hide while it is on screen
+  useEffect(() => {
+    const el = cardRef.current
+    if (!el) return
+    const root = document.documentElement
+    const io = new IntersectionObserver(([entry]) => root.classList.toggle("ww-identify-visible", entry.isIntersecting), { threshold: 0.1 })
+    io.observe(el)
+    return () => {
+      io.disconnect()
+      root.classList.remove("ww-identify-visible")
+    }
+  }, [])
 
   const pick = async (mode: "camera" | "upload") => {
     const img = await capture(mode)
@@ -33,7 +47,7 @@ export function IdentifyCard({ onImage, onText, index, className }: IdentifyCard
   }
 
   return (
-    <Card index={index} className={cn("lg:p-7", className)}>
+    <Card ref={cardRef} index={index} className={cn("lg:p-7", className)}>
       <div className="flex items-start justify-between gap-2">
         <h2 className="display text-[28px] leading-tight">{t("Identify your waste", lang)}</h2>
       </div>

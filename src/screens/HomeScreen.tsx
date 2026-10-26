@@ -134,7 +134,7 @@ export function HomeScreen() {
       <DumpGlobe />
 
       {/* 10. Floating Action Button — Scan with Camera */}
-      <div className="pointer-events-none fixed inset-x-0 bottom-[84px] z-40 mx-auto flex w-full max-w-[480px] items-center justify-center px-4 md:max-w-[720px] lg:bottom-8 lg:max-w-none lg:justify-end lg:pr-28">
+      <div className="ww-fab-hide pointer-events-none fixed inset-x-0 bottom-[84px] z-40 mx-auto flex w-full max-w-[480px] items-center justify-center px-4 md:max-w-[720px] lg:bottom-8 lg:max-w-none lg:justify-end lg:pr-28">
         <button
           onClick={handleCameraScan}
           aria-label="Scan object with camera"

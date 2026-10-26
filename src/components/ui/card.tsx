@@ -1,7 +1,7 @@
-import type { CSSProperties, HTMLAttributes, ReactNode } from "react"
+import type { ComponentProps, CSSProperties, ReactNode } from "react"
 import { cn } from "@/lib/utils"
 
-interface CardProps extends HTMLAttributes<HTMLDivElement> {
+interface CardProps extends ComponentProps<"div"> {
   /** position in a staggered list: fades up 40ms after the previous card */
   index?: number
 }

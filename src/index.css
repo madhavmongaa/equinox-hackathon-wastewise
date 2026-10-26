@@ -335,6 +335,12 @@ p {
 .ww-press { transition: transform 120ms ease; }
 .ww-press:active { transform: scale(0.97); }
 
+/* floating Scan and Lulu buttons: hidden on phones and tablets while the Identify card is on screen (identify-card.tsx) */
+.ww-fab-hide { transition: opacity 0.25s ease, transform 0.25s ease, visibility 0.25s; }
+@media (max-width: 1023px) {
+  html.ww-identify-visible .ww-fab-hide { opacity: 0; transform: translateY(16px) scale(0.92); visibility: hidden; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
