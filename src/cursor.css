@@ -1,0 +1,59 @@
+/* Custom cursor (src/lib/cursor.ts): a forest-green arrow plus a soft ring that trails it
+   and grows over anything clickable. Mouse and trackpad only; touch keeps the default. */
+
+@media (pointer: fine) {
+  html.ww-cursor-on,
+  html.ww-cursor-on body {
+    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 26 26'%3E%3Cpath d='M4 3l15.5 8.2-6.6 1.7-3.3 6.4z' fill='%2308482D' stroke='%23fff' stroke-width='1.8' stroke-linejoin='round'/%3E%3C/svg%3E") 4 3, auto;
+  }
+  html.ww-cursor-on :is(a, button, summary, label, select, [role="button"], [role="tab"], [role="link"], [data-cursor="hover"]):not(:disabled) {
+    cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 26 26'%3E%3Cpath d='M4 3l15.5 8.2-6.6 1.7-3.3 6.4z' fill='%233C9A4E' stroke='%23fff' stroke-width='1.8' stroke-linejoin='round'/%3E%3C/svg%3E") 4 3, pointer;
+  }
+}
+
+.ww-cursor {
+  --ring: rgba(8, 72, 45, 0.55);
+  --fill: rgba(218, 231, 199, 0.45);
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 2147483000;
+  width: 30px;
+  height: 30px;
+  margin: -15px 0 0 -15px;
+  border: 1.5px solid var(--ring);
+  border-radius: 999px;
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    width 0.25s ease,
+    height 0.25s ease,
+    margin 0.25s ease,
+    background-color 0.25s ease,
+    border-color 0.25s ease,
+    opacity 0.2s ease;
+  will-change: transform;
+}
+:root[data-theme="dark"] .ww-cursor {
+  --ring: rgba(218, 231, 199, 0.6);
+  --fill: rgba(218, 231, 199, 0.12);
+}
+.ww-cursor.is-visible {
+  opacity: 1;
+}
+.ww-cursor.is-hover {
+  width: 46px;
+  height: 46px;
+  margin: -23px 0 0 -23px;
+  background-color: var(--fill);
+  border-color: transparent;
+}
+.ww-cursor.is-down {
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;
+}
+/* over text fields the I-beam is enough */
+.ww-cursor.is-text {
+  opacity: 0;
+}
