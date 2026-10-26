@@ -41,6 +41,10 @@
   --ww-glow: rgba(218, 231, 199, 0.95);
   --ww-glow-soft: rgba(218, 231, 199, 0.35);
   --ww-green-text: var(--color-green);
+  --ww-dot: rgba(8, 72, 45, 0.07);
+  --ww-glow-a: rgba(178, 220, 150, 0.8);
+  --ww-glow-b: rgba(140, 212, 180, 0.6);
+  --ww-glow-c: rgba(220, 234, 160, 0.65);
 }
 
 html,
@@ -51,11 +55,34 @@ body,
 
 body {
   margin: 0;
-  background: var(--color-page);
+  /* soft colour glows plus a faint dot texture; the glows drift (see body::before) */
+  background-color: var(--color-page);
+  background-image: radial-gradient(var(--ww-dot) 1px, transparent 1.5px);
+  background-size: 22px 22px;
   color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* three big blurred colour glows behind everything, drifting very slowly */
+body::before {
+  content: "";
+  position: fixed;
+  inset: -15%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(38% 42% at 18% 12%, var(--ww-glow-a), transparent 70%),
+    radial-gradient(34% 40% at 88% 30%, var(--ww-glow-b), transparent 70%),
+    radial-gradient(40% 38% at 45% 95%, var(--ww-glow-c), transparent 70%);
+  filter: blur(30px);
+  animation: ww-drift 40s ease-in-out infinite alternate;
+}
+@keyframes ww-drift {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(3%, -2%, 0) scale(1.06); }
+  100% { transform: translate3d(-3%, 2%, 0) scale(1.02); }
 }
 
 h1, h2, h3, h4 {
@@ -366,6 +393,10 @@ p {
   --ww-glow: rgba(60, 154, 78, 0.28);
   --ww-glow-soft: rgba(60, 154, 78, 0.1);
   --ww-green-text: #8EDBA9;
+  --ww-dot: rgba(255, 255, 255, 0.045);
+  --ww-glow-a: rgba(23, 120, 74, 0.28);
+  --ww-glow-b: rgba(40, 140, 120, 0.16);
+  --ww-glow-c: rgba(60, 154, 78, 0.14);
 
   --bin-dry-text: #8DB6FF;      --bin-dry-soft: rgba(47, 128, 255, 0.16);
   --bin-wet-text: #7FE0A3;      --bin-wet-soft: rgba(34, 197, 94, 0.15);
