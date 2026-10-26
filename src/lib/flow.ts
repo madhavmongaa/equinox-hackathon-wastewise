@@ -23,7 +23,11 @@ function interpretSingle(ai: ScanAI, roundsAnswered: number): Outcome {
     }
     return { kind: "not_found", ai, reason: "unclear" }
   }
-  const rule = (ai.rule_found ? getRule(ai.rule_id) : null) ?? generatedRule(ai)
+  // the photo had nothing to sort in it: ask for a clearer one rather than "no rule found"
+  if (!ai.item.trim() || /\b(no (waste )?item|not (a )?waste|no waste)\b/i.test(ai.item)) {
+    return { kind: "not_found", ai, reason: "unclear" }
+  }
+  const rule =(ai.rule_found ? getRule(ai.rule_id) : null) ?? generatedRule(ai)
   const category = rule ? getCategory(rule.category_id) : null
   if (rule && category) return { kind: "result", ai, rule, category }
   return { kind: "not_found", ai, reason: "no_rule" }

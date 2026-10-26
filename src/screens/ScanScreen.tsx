@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { ArrowLeft, Camera, Check } from "lucide-react"
+import { ArrowLeft, Camera, Check, MapPin, MessageCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { IdentifyCard } from "@/components/identify-card"
 import { AnalysisView, ClarificationCard, CorrectionSheet, ErrorCard, OutcomeView, ResultActions } from "@/components/scan-views"
@@ -13,8 +13,10 @@ import { scrapInOutcome } from "@/lib/scrap"
 import { consumeVoiceTurn, outcomeSpeech, speak, stopSpeaking } from "@/lib/voice"
 import { useApp, type ScanStart } from "@/state/AppContext"
 import { useCapture } from "@/state/capture"
+import { LuluMascot } from "@/components/ui/LuluMascot"
+import { queueScan } from "@/lib/offlineQueue"
 
-type Stage = "pick" | "preview" | "analyzing" | "clarify" | "result" | "error"
+type Stage = "pick" | "preview" | "analyzing" | "clarify" | "result" | "question" | "queued" | "error"
 
 const emptyInput = (image: ImageInput | null = null, description = ""): ScanInput => ({ image, description, clarifications: [] })
 
@@ -26,7 +28,7 @@ export function errorMessage(err: unknown) {
 }
 
 export function ScanScreen({ start }: { start?: ScanStart }) {
-  const { navigate, finishScan } = useApp()
+  const { navigate, finishScan, askLulu } = useApp()
   const capture = useCapture()
   const [stage, setStage] = useState<Stage>("pick")
   const [input, setInput] = useState<ScanInput>(emptyInput())
@@ -43,8 +45,14 @@ export function ScanScreen({ start }: { start?: ScanStart }) {
     const spoken = consumeVoiceTurn()
     stopSpeaking()
     setInput(next)
-    setStage("analyzing")
     setError(null)
+    // no connection: keep the scan for later instead of failing
+    const fresh = !next.clarifications.length && !next.correctedItem
+    if (!navigator.onLine && fresh && queueScan({ image: next.image ?? undefined, text: next.description.trim() || undefined })) {
+      setStage("queued")
+      return
+    }
+    setStage("analyzing")
     const started = Date.now()
     try {
       const out = await runIdentification(next)
@@ -52,6 +60,11 @@ export function ScanScreen({ start }: { start?: ScanStart }) {
       await new Promise((r) => setTimeout(r, Math.max(0, 1400 - (Date.now() - started))))
       if (id !== runId.current) return
       setOutcome(out)
+      // only a question, nothing to sort: hand it to Lulu instead of inventing a bin (text scans only)
+      if (!next.image && sideQuestion(out.ai, next) && !out.ai!.item.trim() && !(out.ai!.items?.length ?? 0)) {
+        setStage("question")
+        return
+      }
       // the AI's own identification (after any clarifications), kept separately from a correction
       if (!next.correctedItem && out.ai) setOriginalAi(out.ai)
       if (out.kind === "result" || out.kind === "multi") playScanSuccessSound()
@@ -200,6 +213,14 @@ export function ScanScreen({ start }: { start?: ScanStart }) {
         />
       )}
 
+      {stage === "question" && sideQuestion(outcome?.ai, input) && (
+        <QuestionForLulu question={sideQuestion(outcome?.ai, input)!} onAsk={() => askLulu(sideQuestion(outcome?.ai, input)!)} onScan={reset} />
+      )}
+
+      {stage === "result" && sideQuestion(outcome?.ai, input) && (
+        <SideQuestionNote question={sideQuestion(outcome?.ai, input)!} onAsk={() => askLulu(sideQuestion(outcome?.ai, input)!)} />
+      )}
+
       {stage === "result" && outcome && outcome.kind !== "clarify" && (
         <OutcomeView
           outcome={outcome}
@@ -212,6 +233,11 @@ export function ScanScreen({ start }: { start?: ScanStart }) {
                   <Camera size={18} /> Try a clearer photo
                 </Button>
               )}
+              {outcome.kind === "result" && (
+                <Button variant="ghost" className="w-full" onClick={() => navigate({ name: "bins", category: outcome.category.id })}>
+                  <MapPin size={18} /> Find the nearest {outcome.category.bin.toLowerCase()}
+                </Button>
+              )}
               <ResultActions busy={saving} onGotIt={gotIt} onCorrect={outcome.kind === "multi" ? undefined : () => setCorrecting(true)} onScanAnother={reset} onScanAgain={scanAgain} />
             </div>
           }
@@ -220,6 +246,19 @@ export function ScanScreen({ start }: { start?: ScanStart }) {
 
       {stage === "result" && outcome && scrap && (
         <ScrapPopup key={runId.current} find={scrap} onFind={() => navigate({ name: "kabadiwala", kinds: scrap.kinds, from: scrap.items.join(", ") })} />
+      )}
+
+      {stage === "queued" && (
+        <div className="ww-fade-up glass mx-auto flex max-w-md flex-col items-center px-6 py-8 text-center">
+          <span className="grid place-items-center rounded-full bg-mint p-1">
+            <LuluMascot mood="idle" size={72} />
+          </span>
+          <h2 className="display mt-3 text-2xl">Saved for when you're online</h2>
+          <p className="mt-1 text-sm text-sub">You're offline right now. Home will offer to sort this scan as soon as you're connected again.</p>
+          <Button className="mt-5" onClick={() => navigate({ name: "home" })}>
+            Back to Home
+          </Button>
+        </div>
       )}
 
       {stage === "error" && <ErrorCard message={error ?? undefined} onRetry={() => run(input)} />}
@@ -234,4 +273,57 @@ export function ScanScreen({ start }: { start?: ScanStart }) {
       />
     </div>
   )
+}
+
+/** The scan box got a question, not an item: offer to ask Lulu. */
+function QuestionForLulu({ question, onAsk, onScan }: { question: string; onAsk: () => void; onScan: () => void }) {
+  return (
+    <div className="ww-fade-up glass mx-auto flex max-w-md flex-col items-center px-6 py-8 text-center">
+      <span className="grid place-items-center rounded-full bg-mint p-1">
+        <LuluMascot mood="happy" size={72} />
+      </span>
+      <h2 className="display mt-3 text-2xl">That's a question for Lulu</h2>
+      <p className="mt-1 text-sm text-sub">There's nothing to sort here, but Lulu can answer it in the chat.</p>
+      <p className="tile mt-4 w-full px-4 py-3 text-left text-sm">"{question}"</p>
+      <div className="mt-5 grid w-full grid-cols-2 gap-3">
+        <Button variant="outline" onClick={onScan}>
+          <Camera size={18} /> Scan an item
+        </Button>
+        <Button onClick={onAsk}>
+          <MessageCircle size={18} /> Ask Lulu
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+/** Shown above a result when the input also had a question in it. */
+function SideQuestionNote({ question, onAsk }: { question: string; onAsk: () => void }) {
+  return (
+    <div className="ww-fade-up tile mb-4 flex items-center gap-3 px-4 py-3">
+      <MessageCircle size={18} className="shrink-0 text-green" />
+      <p className="min-w-0 flex-1 text-sm">
+        <span className="text-sub">You also asked: </span>
+        <span className="font-semibold">"{question}"</span>
+      </p>
+      <Button size="sm" variant="secondary" className="h-9 shrink-0" onClick={onAsk}>
+        Ask Lulu
+      </Button>
+    </div>
+  )
+}
+
+/**
+ * The question in the user's own description, if the model found one. Ignored unless
+ * most of its words really are in what the user typed (so the app's own notes, like
+ * "The photo above shows the item.", can never come back as a "question").
+ */
+function sideQuestion(ai: ScanAI | null | undefined, input: ScanInput): string | null {
+  const q = ai?.side_question?.trim()
+  const typed = input.description.trim().toLowerCase()
+  if (!q || !typed) return null
+  const words = q.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? []
+  if (!words.length) return null
+  const found = words.filter((w) => typed.includes(w)).length
+  return found / words.length >= 0.7 ? q : null
 }

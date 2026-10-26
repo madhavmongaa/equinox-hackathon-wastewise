@@ -1,0 +1,19 @@
+{
+  "name": "WasteWise — Sort smarter. Waste less.",
+  "short_name": "WasteWise",
+  "description": "AI waste sorting for the campus: scan an item, see the right bin.",
+  "start_url": "/app.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F5F8EF",
+  "theme_color": "#08482D",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ],
+  "shortcuts": [
+    { "name": "Scan an item", "url": "/app.html#scan" },
+    { "name": "Ask Lulu", "url": "/app.html#lulu" }
+  ]
+}

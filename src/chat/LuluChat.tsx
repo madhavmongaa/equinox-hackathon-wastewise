@@ -5,6 +5,7 @@ import { Camera, ChevronRight, Paperclip, Send, SquarePen, Volume2, VolumeX, X }
 import { Mark } from "@/components/ui/card"
 import { Sheet } from "@/components/ui/sheet"
 import { LuluMascot } from "@/components/ui/LuluMascot"
+import { getLang } from "@/lib/i18n"
 import { CategoryChip } from "@/components/brand"
 import { ANALYSIS_STEPS, ClarificationCard, CorrectionSheet, ErrorCard, OutcomeView, ResultActions, useAnalysisStep } from "@/components/scan-views"
 import { MicButton, useVoiceInput } from "@/components/voice"
@@ -108,7 +109,7 @@ function toScanAI(ai: LuluAI, fallbackItem: string): ScanAI {
 }
 
 export function LuluChat() {
-  const { chatOpen, setChatOpen, finishScan } = useApp()
+  const { chatOpen, setChatOpen, finishScan, luluPrompt, takeLuluPrompt } = useApp()
   const capture = useCapture()
   const [messages, setMessages] = useState<Msg[]>([{ id: "welcome", role: "lulu", text: WELCOME }])
   const [mood, setMood] = useState<LuluMood>("idle")
@@ -269,6 +270,7 @@ export function LuluChat() {
         lastItem: last.current?.item ?? null,
         // the whole chat so far (the server keeps the most recent part if it gets long)
         recent: chatHistory(messagesRef.current),
+        lang: getLang(),
       }
       const session = sessionRef.current
       try {
@@ -287,6 +289,13 @@ export function LuluChat() {
     },
     [handleAI, push]
   )
+
+  // a question handed over from elsewhere (e.g. typed into the scan box): ask it in a fresh chat
+  useEffect(() => {
+    if (!chatOpen || !luluPrompt) return
+    takeLuluPrompt()
+    send({ text: luluPrompt.text, image: null })
+  }, [chatOpen, luluPrompt, takeLuluPrompt, send])
 
   const sendPhoto = async (mode: "camera" | "upload") => {
     const img = await capture(mode)
@@ -319,7 +328,10 @@ export function LuluChat() {
       {/* header */}
       <div className="flex items-center gap-3 border-b border-green/12 px-4 py-3">
         <span className="bg-mint grid shrink-0 aspect-square place-items-center overflow-hidden rounded-full p-0.5">
-          <LuluMascot mood={speaking ? "talking" : mood} size={44} />
+          {/* waves hello each time the chat opens */}
+          <span key={String(chatOpen)} className="ww-wave block">
+            <LuluMascot mood={speaking ? "talking" : mood} size={44} />
+          </span>
         </span>
         <div className="min-w-0 flex-1">
           <h2 id="lulu-title" className="display text-2xl leading-none">Lulu</h2>

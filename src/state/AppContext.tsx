@@ -1,4 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { flushSync } from "react-dom"
+import { flyPoints } from "@/lib/fx"
 import { buildHistoryEntry, itemKey } from "@/lib/flow"
 import { fetchMyRank } from "@/lib/leaderboard"
 import { loadHistory, saveHistory } from "@/lib/history"
@@ -10,7 +12,7 @@ import type { ScrapKind } from "@/lib/scrap"
 import { cropThumbnail } from "@/lib/segment"
 import { profileStore, type AwardOutcome, type SettingsPatch, type StoredProfile } from "@/lib/store"
 import type { HistoryEntry, ImageInput, Outcome, ScanAI, ScanInput, SingleOutcome } from "@/lib/types"
-import { uuid } from "@/lib/utils"
+import { prefersReducedMotion, uuid } from "@/lib/utils"
 
 export interface ScanStart {
   key: string
@@ -30,6 +32,8 @@ export type Screen =
   | { name: "kabadiwala"; kinds?: ScrapKind[]; from?: string }
   | { name: "cleaning" }
   | { name: "impact" }
+  | { name: "bins"; category?: string }
+  | { name: "admin" }
   | { name: "account"; mode?: "create" | "signin" | "reset" }
 
 // Each screen has an address, so links like /app.html#leaderboard open it directly.
@@ -46,9 +50,12 @@ function screenFromHash(hash: string): { screen: Screen; chat: boolean } {
     case "kabadiwala":
     case "cleaning":
     case "impact":
+    case "admin":
     case "account":
       if (name === "history" && id) return { screen: { name: "historyDetail", id: decodeURIComponent(id) }, chat: false }
       return { screen: { name }, chat: false }
+    case "bins":
+      return { screen: { name: "bins", category: id ? decodeURIComponent(id) : undefined }, chat: false }
     case "lulu":
       return { screen: { name: "home" }, chat: true }
     default:
@@ -59,6 +66,7 @@ function screenFromHash(hash: string): { screen: Screen; chat: boolean } {
 function hashForScreen(s: Screen) {
   if (s.name === "home") return ""
   if (s.name === "historyDetail") return `#history/${encodeURIComponent(s.id)}`
+  if (s.name === "bins") return s.category ? `#bins/${encodeURIComponent(s.category)}` : "#bins"
   return `#${s.name}`
 }
 
@@ -97,6 +105,11 @@ interface AppState {
   toast: (text: string, tone?: ToastTone) => void
   chatOpen: boolean
   setChatOpen: (open: boolean) => void
+  /** Opens the chat and sends this message to Lulu. */
+  askLulu: (text: string) => void
+  /** The message waiting to be sent when the chat opens (taken by the chat). */
+  luluPrompt: { id: string; text: string } | null
+  takeLuluPrompt: () => void
   joinOpen: boolean
   openJoin: () => void
   closeJoin: () => void
@@ -126,6 +139,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [authError, setAuthError] = useState<string | null>(null)
   const [toasts, setToasts] = useState<Toast[]>([])
   const [chatOpen, setChatOpenState] = useState(initial.chat)
+  const [luluPrompt, setLuluPrompt] = useState<{ id: string; text: string } | null>(null)
   const [joinOpen, setJoinOpen] = useState(false)
   const [levelUp, setLevelUp] = useState<Level | null>(null)
   const [pointsVersion, setPointsVersion] = useState(0)
@@ -198,7 +212,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
   screenRef.current = screen
 
   const navigate = useCallback((s: Screen) => {
-    setScreen(s)
+    // cross-fade between pages where the browser supports View Transitions. The transition
+    // waits for a painted frame; if none comes soon (hidden or throttled page), skip it and
+    // change the page directly, so navigation never depends on the animation.
+    const doc = document as Document & { startViewTransition?: (cb: () => void) => { skipTransition?: () => void } }
+    if (doc.startViewTransition && !prefersReducedMotion() && hashForScreen(s) !== hashForScreen(screenRef.current)) {
+      let swapped = false
+      const swap = () => {
+        if (swapped) return
+        swapped = true
+        flushSync(() => setScreen(s))
+      }
+      const vt = doc.startViewTransition(swap)
+      setTimeout(() => {
+        if (swapped) return
+        vt.skipTransition?.()
+        swap()
+      }, 250)
+    } else {
+      setScreen(s)
+    }
     const hash = hashForScreen(s)
     if (hash !== window.location.hash) {
       // a real history entry, so the browser back button works
@@ -234,6 +267,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const askLulu = useCallback((text: string) => {
+    setLuluPrompt({ id: uuid(), text })
+    setChatOpenState(true)
+  }, [])
+  const takeLuluPrompt = useCallback(() => setLuluPrompt(null), [])
+
   // ---------- points ----------
   const weeklyRank = useCallback(async (p: StoredProfile | null) => {
     if (!p || profileStore.mode !== "firebase") return null
@@ -250,7 +289,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         if (out.blocked === "daily_limit") toast("Daily points limit reached — come back tomorrow 🌙", "info")
         else if (out.blocked === "duplicate") toast("Already counted this item in the last 10 minutes — no extra points", "info")
-        else if (out.total > 0) toast(`+${out.total} Eco Points 🌱`, "points")
+        else if (out.total > 0) {
+          toast(`+${out.total} Eco Points 🌱`, "points")
+          flyPoints(out.total)
+        }
 
         const lvBefore = levelFor(out.before.points)
         const lvAfter = levelFor(out.after.points)
@@ -323,7 +365,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       try {
         const { before, after } = await profileStore.bonus(write)
         setPointsVersion((v) => v + 1)
-        if (write.amount > 0) toast(`+${write.amount} Eco Points · ${label} 🌱`, "points")
+        if (write.amount > 0) {
+          toast(`+${write.amount} Eco Points · ${label} 🌱`, "points")
+          flyPoints(write.amount)
+        }
         const lvBefore = levelFor(before.points)
         const lvAfter = levelFor(after.points)
         if (lvAfter.index > lvBefore.index) setLevelUp(lvAfter.level)
@@ -370,6 +415,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       toast,
       chatOpen,
       setChatOpen,
+      askLulu,
+      luluPrompt,
+      takeLuluPrompt,
       joinOpen,
       openJoin: () => setJoinOpen(true),
       closeJoin: () => setJoinOpen(false),
@@ -379,7 +427,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       dismissLevelUp: () => setLevelUp(null),
       pointsVersion,
     }),
-    [screen, navigate, history, clearHistory, profile, profileLoaded, uid, authError, finishScan, awardBonus, toasts, toast, chatOpen, setChatOpen, joinOpen, join, updateSettings, levelUp, pointsVersion]
+    [screen, navigate, history, clearHistory, profile, profileLoaded, uid, authError, finishScan, awardBonus, toasts, toast, chatOpen, setChatOpen, askLulu, luluPrompt, takeLuluPrompt, joinOpen, join, updateSettings, levelUp, pointsVersion]
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

@@ -7,6 +7,7 @@ import { Camera, Map as MapIcon, ScanLine, Send, Truck } from "lucide-react"
 import { CampusGlobe } from "@/components/campus-globe"
 import type { GlobeMarker } from "@/components/ui/3d-globe"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/motion"
 import { GovernmentRegistry } from "@/dumps/GovernmentRegistry"
 import { GovernmentReportModal } from "@/dumps/GovernmentReportModal"
 import { HeatmapView } from "@/dumps/HeatmapView"
@@ -16,6 +17,8 @@ import { CleanupSummary } from "@/dumps/CleanupSummary"
 import { SEVERITY_COLOR } from "@/dumps/severity"
 import type { DumpReport, DumpStatus } from "@/dumps/types"
 import { logActivity } from "@/lib/activity"
+import { checkReports, rememberReport } from "@/lib/myReports"
+import { MyReports } from "@/dumps/MyReports"
 import { POINTS } from "@/lib/points"
 import { cn, prefersReducedMotion } from "@/lib/utils"
 import { useApp } from "@/state/AppContext"
@@ -64,6 +67,7 @@ export function DumpsScreen({ dumpId }: { dumpId?: string }) {
     setDumps((prev) => [dump, ...prev])
     toast(`"${dump.title}" reported and added to the heatmap`, "happy")
     logActivity("dump_report")
+    rememberReport(dump)
     // a moment later, so the two toasts don't land on top of each other
     setTimeout(() => awardBonus({ amount: POINTS.dumpReport, stats: { dumpsReported: 1 } }, "Reported a dump"), 900)
     if (dispatchNow) openGov(dump)
@@ -84,6 +88,7 @@ export function DumpsScreen({ dumpId }: { dumpId?: string }) {
       const data = await res.json()
       if (data.success && data.dump) {
         setDumps((prev) => prev.map((d) => (d.id === id ? data.dump : d)))
+        checkReports([data.dump], (text) => setTimeout(() => toast(text, "happy"), 1200))
         toast(status === "cleaned" ? "Dump marked as cleaned ✅" : status === "in_progress" ? "Crew sent 🚛" : `Marked as ${status.replace(/_/g, " ")}`, "info")
       }
     } catch (err) {
@@ -141,6 +146,7 @@ export function DumpsScreen({ dumpId }: { dumpId?: string }) {
       </header>
 
       {!loading && <CleanupSummary dumps={dumps} onOpenQueue={() => setTab("sweeper")} />}
+      {!loading && <MyReports dumps={dumps} />}
 
       <div role="tablist" aria-label="Dumps views" className="no-scrollbar flex gap-2 overflow-x-auto">
         {TABS.map(({ id, label, icon: Icon }) => (
@@ -157,7 +163,14 @@ export function DumpsScreen({ dumpId }: { dumpId?: string }) {
       </div>
 
       {loading ? (
-        <div className="glass grid place-items-center p-12 text-sm text-sub">Loading dump reports…</div>
+        <div className="space-y-3" role="status" aria-label="Loading dump reports">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-[62px] rounded-[20px]" />
+            ))}
+          </div>
+          <Skeleton className="h-[420px] rounded-[20px]" />
+        </div>
       ) : (
         <>
           {tab === "heatmap" && (

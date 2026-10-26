@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import type { Profile } from "@/lib/types"
 import { ArrowLeft, Award, CheckCircle2, Flame, Hash, Lock, Package, Pencil, Sparkles, Star, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -19,6 +20,7 @@ import { POINTS } from "@/lib/points"
 import { AVATARS, NICKNAME_HINT, validateNickname } from "@/lib/nickname"
 import { cn } from "@/lib/utils"
 import { useApp } from "@/state/AppContext"
+import { setLang, useLang } from "@/lib/i18n"
 
 export function ProfileScreen() {
   const { navigate, profile, openJoin, updateSettings, toast, storeMode, history } = useApp()
@@ -28,6 +30,8 @@ export function ProfileScreen() {
 
   const maxCat = Math.max(1, ...Object.values(s.byCategory))
   const cats = [...guide.categories.map((c) => ({ id: c.id, label: c.label, color: c.color })), { id: "none", label: "Not in guide", color: "#5B6770" }]
+
+  const newBadges = useNewBadges(profile)
 
   const currentLevelNumber = s.level.index + 1
   const pct = Math.round(Math.max(0, Math.min(1, s.level.progress)) * 100)
@@ -239,8 +243,9 @@ export function ProfileScreen() {
         <div className="grid grid-cols-2 gap-2">
           {BADGES.map((b) => {
             const earned = !!profile && b.earned(profile)
+            const fresh = earned && newBadges.includes(b.id)
             return (
-              <div key={b.id} className={cn("rounded-[16px] px-3 py-3", earned ? "pill rounded-[16px]" : "tile opacity-60")}>
+              <div key={b.id} className={cn("rounded-[16px] px-3 py-3", earned ? "pill rounded-[16px]" : "tile opacity-60", fresh && "ww-shine ww-pop")}>
                 <div className="text-2xl" aria-hidden="true">{b.emoji}</div>
                 <div className="mt-1 text-sm font-semibold">{b.name}</div>
                 <div className={cn("text-[11px]", earned ? "text-white/75" : "text-sub")}>{earned ? "Earned" : b.description}</div>
@@ -257,6 +262,13 @@ export function ProfileScreen() {
             <p className="text-xs text-sub">Light is the default. Your choice is saved on this device.</p>
           </div>
           <ThemeChoice />
+        </div>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--ww-line)] pt-4">
+          <div>
+            <h2 className="display text-lg">Language</h2>
+            <p className="text-xs text-sub">Menus, Home and Lulu's replies. The campus guide's rules stay in English.</p>
+          </div>
+          <LanguageChoice />
         </div>
       </Card>
 
@@ -279,6 +291,16 @@ export function ProfileScreen() {
           </Button>
         </Card>
       )}
+
+      <Card index={7} className="lg:col-span-2">
+        <h2 className="display mb-3 text-lg">More</h2>
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <MoreLink emoji="📘" title="Campus waste guide" desc="Every bin and its rules" onClick={() => navigate({ name: "guide" })} />
+          <MoreLink emoji="🗺️" title="Campus bin map" desc="Nearest bin of each colour" onClick={() => navigate({ name: "bins" })} />
+          <MoreLink emoji="🌍" title="Your impact" desc="CO₂ and landfill savings" onClick={() => navigate({ name: "impact" })} />
+          <MoreLink emoji="📊" title="Campus dashboard" desc="For staff: dumps and participation" onClick={() => navigate({ name: "admin" })} />
+        </div>
+      </Card>
 
       {profile && editing && (
         <EditProfileCard
@@ -382,5 +404,70 @@ export function NicknameFields({ name, setName, avatar, setAvatar, error }: { na
         </div>
       </div>
     </>
+  )
+}
+
+const SEEN_BADGES_KEY = "wastewise.seenBadges.v1"
+
+/** Badges earned since this device last showed the Profile page (they get a shine once). */
+function useNewBadges(profile: Profile | null) {
+  const [fresh, setFresh] = useState<string[]>([])
+  const earned = profile ? BADGES.filter((b) => b.earned(profile)).map((b) => b.id) : []
+  const key = earned.join()
+  useEffect(() => {
+    if (!profile) return
+    let seen: string[] = []
+    try {
+      seen = JSON.parse(localStorage.getItem(SEEN_BADGES_KEY) ?? "[]")
+    } catch {
+      /* first visit */
+    }
+    const ids = key ? key.split(",") : []
+    const news = ids.filter((id) => !seen.includes(id))
+    if (news.length) setFresh((f) => [...new Set([...f, ...news])])
+    try {
+      localStorage.setItem(SEEN_BADGES_KEY, JSON.stringify([...new Set([...seen, ...ids])]))
+    } catch {
+      /* storage blocked */
+    }
+  }, [key, profile])
+  return fresh
+}
+
+function LanguageChoice() {
+  const lang = useLang()
+  return (
+    <div className="pill-glass grid grid-cols-2 p-1" role="radiogroup" aria-label="Language">
+      {(
+        [
+          ["en", "English"],
+          ["hi", "हिन्दी"],
+        ] as const
+      ).map(([id, label]) => (
+        <button
+          key={id}
+          role="radio"
+          aria-checked={lang === id}
+          onClick={() => setLang(id)}
+          className={cn("h-10 rounded-full px-4 text-sm font-semibold transition-colors", lang === id ? "bg-mint text-green shadow-soft" : "text-sub")}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function MoreLink({ emoji, title, desc, onClick }: { emoji: string; title: string; desc: string; onClick: () => void }) {
+  return (
+    <button onClick={onClick} className="ww-press tile flex items-center gap-3 px-3.5 py-3 text-left hover:border-[var(--ww-line-strong)]">
+      <span className="text-2xl" aria-hidden="true">
+        {emoji}
+      </span>
+      <span className="min-w-0">
+        <span className="block text-sm font-semibold">{title}</span>
+        <span className="block truncate text-xs text-sub">{desc}</span>
+      </span>
+    </button>
   )
 }

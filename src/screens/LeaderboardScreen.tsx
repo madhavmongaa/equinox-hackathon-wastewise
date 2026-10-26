@@ -1,9 +1,10 @@
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { ArrowLeft, ScanLine } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Mark } from "@/components/ui/card"
 import { LuluMascot } from "@/components/ui/LuluMascot"
 import { LevelBadge } from "@/components/brand"
+import { SkeletonRows, useFlip } from "@/components/motion"
 import { TeamPicker } from "@/components/team-picker"
 import { Avatar, BoardList, NotConnectedNote, YouRankLine } from "@/components/widgets"
 import { useLeaderboard, useMyRank, useTeamBoard } from "@/hooks/useLeaderboard"
@@ -60,7 +61,7 @@ export function LeaderboardScreen() {
       ) : !connected ? (
         <NotConnectedNote />
       ) : loading ? (
-        <p className="on-sky py-10 text-center text-sm font-semibold">Loading leaderboard…</p>
+        <SkeletonRows rows={6} />
       ) : error ? (
         <p className="glass px-5 py-6 text-center text-sm">{error}</p>
       ) : rows.length === 0 ? (
@@ -127,6 +128,8 @@ function TeamBoard() {
   const max = Math.max(1, ...rows.map((r) => r.points))
   // teams with nobody scoring yet still show, at the bottom
   const all = [...rows, ...TEAMS.filter((t) => !rows.some((r) => r.team === t.id)).map((t) => ({ team: t.id, points: 0, members: 0 }))]
+  const list = useRef<HTMLOListElement>(null)
+  useFlip(list, all.map((r) => r.team).join())
 
   return (
     <div className="space-y-4">
@@ -138,16 +141,16 @@ function TeamBoard() {
       {!connected ? (
         <NotConnectedNote />
       ) : loading ? (
-        <p className="on-sky py-10 text-center text-sm font-semibold">Loading teams…</p>
+        <SkeletonRows rows={5} />
       ) : error ? (
         <p className="glass px-5 py-6 text-center text-sm">{error}</p>
       ) : (
-        <ol className="space-y-2">
+        <ol ref={list} className="space-y-2">
           {all.map((r, i) => {
             const t = teamById(r.team)
             if (!t) return null
             return (
-              <li key={r.team} className={cn("ww-fade-up glass flex items-center gap-3 px-4 py-3", mine?.id === r.team && "ring-2 ring-green")} style={{ animationDelay: `${i * 40}ms` }}>
+              <li key={r.team} data-flip-key={r.team} className={cn("ww-fade-up glass flex items-center gap-3 px-4 py-3", mine?.id === r.team && "ring-2 ring-green")} style={{ animationDelay: `${i * 40}ms` }}>
                 <span className="w-6 text-center text-sm font-bold text-sub">#{i + 1}</span>
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-xl" style={{ background: `${t.color}22` }} aria-hidden="true">
                   {t.emoji}
@@ -158,7 +161,10 @@ function TeamBoard() {
                     <span className="shrink-0 text-sm font-bold tabular-nums">{r.points} pts</span>
                   </span>
                   <span className="mt-1.5 block h-2 overflow-hidden rounded-full bg-mint">
-                    <span className="block h-full rounded-full transition-[width] duration-500" style={{ width: `${(r.points / max) * 100}%`, background: t.color }} />
+                    <span
+                      className="ww-grow-x block h-full rounded-full transition-[width] duration-500"
+                      style={{ width: `${(r.points / max) * 100}%`, background: t.color, animationDelay: `${i * 80}ms` }}
+                    />
                   </span>
                   <span className="mt-1 block text-[11px] text-sub">
                     {r.members} {r.members === 1 ? "sorter" : "sorters"} this week

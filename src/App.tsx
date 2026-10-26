@@ -1,5 +1,6 @@
 import { LuluChat } from "@/chat/LuluChat"
 import { BottomNav, JoinSheet, LevelUpCard, LuluFab, Toasts, TopNav } from "@/components/app-chrome"
+import { ReminderTicker } from "@/components/home-extras"
 import { AccountScreen } from "@/screens/AccountScreen"
 import { CleaningScreen } from "@/screens/CleaningScreen"
 import { DumpsScreen } from "@/screens/DumpsScreen"
@@ -8,6 +9,8 @@ import { KabadiwalaScreen } from "@/screens/KabadiwalaScreen"
 import { HistoryDetailScreen, HistoryScreen } from "@/screens/HistoryScreen"
 import { HomeScreen } from "@/screens/HomeScreen"
 import { ImpactScreen } from "@/screens/ImpactScreen"
+import { AdminScreen } from "@/screens/AdminScreen"
+import { BinsScreen } from "@/screens/BinsScreen"
 import { LeaderboardScreen } from "@/screens/LeaderboardScreen"
 import { ProfileScreen } from "@/screens/ProfileScreen"
 import { ScanScreen } from "@/screens/ScanScreen"
@@ -37,6 +40,10 @@ function CurrentScreen() {
       return <CleaningScreen />
     case "impact":
       return <ImpactScreen />
+    case "bins":
+      return <BinsScreen key={screen.category ?? "all"} category={screen.category} />
+    case "admin":
+      return <AdminScreen />
     case "account":
       return <AccountScreen key={screen.mode ?? "account"} mode={screen.mode} />
     case "kabadiwala":
@@ -61,6 +68,7 @@ export default function App() {
         <LuluChat />
         <JoinSheet />
         <LevelUpCard />
+        <ReminderTicker />
       </CaptureProvider>
     </AppProvider>
   )

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { accountsAvailable, useAccount } from "@/lib/auth"
 import { cn } from "@/lib/utils"
 import { useApp } from "@/state/AppContext"
+import { t, useLang } from "@/lib/i18n"
 
 /** Profile: who you're signed in as, or a nudge to create an account. */
 export function AccountCard({ className }: { className?: string }) {
@@ -71,12 +72,13 @@ export function AccountAvatar({ size = 36 }: { size?: number }) {
 /** Top-bar button: "Sign in" for guests, the avatar once signed in. */
 export function AccountButton() {
   const { navigate } = useApp()
+  const lang = useLang()
   const account = useAccount()
   if (!accountsAvailable || !account) return null
   if (account.isGuest) {
     return (
       <Button size="sm" variant="outline" className="shrink-0" onClick={() => navigate({ name: "account", mode: "signin" })}>
-        <LogIn size={16} /> Sign in
+        <LogIn size={16} /> {t("Sign in", lang)}
       </Button>
     )
   }

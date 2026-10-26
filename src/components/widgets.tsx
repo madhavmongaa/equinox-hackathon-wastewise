@@ -1,6 +1,8 @@
+import { useRef } from "react"
 import { ChevronRight, Flame, Package, Sparkles, Trophy } from "lucide-react"
 import { Card, Mark } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
+import { CountUp, SkeletonRows, useFlip } from "@/components/motion"
 import { CategoryChip, LevelBadge, Thumb } from "@/components/brand"
 import { useLeaderboard, useMyRank } from "@/hooks/useLeaderboard"
 import { useStats } from "@/hooks/useStats"
@@ -9,6 +11,7 @@ import type { BoardRow } from "@/lib/leaderboard"
 import type { HistoryEntry } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { useApp } from "@/state/AppContext"
+import { t, useLang } from "@/lib/i18n"
 
 // ---------- tracking ----------
 
@@ -16,7 +19,7 @@ export function StatTile({ icon, value, label }: { icon: React.ReactNode; value:
   return (
     <div className="tile px-3 py-3 text-center">
       <div className="mx-auto mb-1 grid h-8 w-8 place-items-center rounded-full bg-mint text-green">{icon}</div>
-      <div className="display text-2xl leading-tight">{value}</div>
+      <div className="display text-2xl leading-tight">{typeof value === "number" ? <CountUp value={value} /> : value}</div>
       <div className="text-[11px] leading-tight text-sub">{label}</div>
     </div>
   )
@@ -81,11 +84,15 @@ export function NotConnectedNote() {
 }
 
 export function BoardList({ rows, highlightUid, startRank = 1 }: { rows: BoardRow[]; highlightUid?: string | null; startRank?: number }) {
+  // rows slide to their new place when ranks change live
+  const list = useRef<HTMLOListElement>(null)
+  useFlip(list, rows.map((r) => r.uid).join())
   return (
-    <ol className="space-y-2">
+    <ol ref={list} className="space-y-2">
       {rows.map((r, i) => (
         <li
           key={r.uid}
+          data-flip-key={r.uid}
           className={cn(
             "ww-fade-up flex items-center gap-3 rounded-[16px] px-3 py-2.5",
             r.uid === highlightUid ? "pill rounded-[16px]" : "tile text-ink"
@@ -119,6 +126,7 @@ export function YouRankLine({ rank, points, className }: { rank: number | null; 
 
 export function LeaderboardPreviewCard({ index, className }: { index?: number; className?: string }) {
   const { navigate, uid, profile } = useApp()
+  const lang = useLang()
   const { rows, loading, error, connected } = useLeaderboard("week", 3)
   const rank = useMyRank("week", rows)
   const s = useStats()
@@ -126,12 +134,12 @@ export function LeaderboardPreviewCard({ index, className }: { index?: number; c
     <Card index={index} className={className}>
       <div className="mb-3 flex items-center gap-2">
         <Trophy size={18} className="text-green" />
-        <h2 className="display text-lg">This week's top sorters</h2>
+        <h2 className="display text-lg">{t("This week's top sorters", lang)}</h2>
       </div>
       {!connected ? (
         <NotConnectedNote />
       ) : loading ? (
-        <p className="py-4 text-center text-sm text-sub">Loading…</p>
+        <SkeletonRows rows={3} />
       ) : error ? (
         <p className="py-4 text-center text-sm text-sub">{error}</p>
       ) : rows.length === 0 ? (

@@ -1,7 +1,7 @@
 "use client";
 import React, { useRef, useMemo, useState, useCallback, Suspense } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { OrbitControls, Html, useTexture } from "@react-three/drei";
+import { Billboard, OrbitControls, useTexture } from "@react-three/drei";
 import * as THREE from "three";
 import { cn } from "@/lib/utils";
 
@@ -144,13 +144,6 @@ function Marker({
   const [hovered, setHovered] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
 
-  // drei's <Html> can drop its first render when its portal target settles just after
-  // mount; on a still globe nothing re-renders the pin, so it stays empty. Re-render once.
-  const [, settle] = useState(0);
-  React.useEffect(() => {
-    const id = requestAnimationFrame(() => settle(1));
-    return () => cancelAnimationFrame(id);
-  }, []);
   const groupRef = useRef<THREE.Group>(null);
   const imageGroupRef = useRef<THREE.Group>(null);
   const { camera } = useThree();
@@ -166,6 +159,8 @@ function Marker({
   }, [marker.lat, marker.lng, radius]);
 
   const lineHeight = topPosition.distanceTo(surfacePosition);
+  // marker.size is in the old CSS pixels; this keeps pins about the same size on screen
+  const headRadius = (marker.src ? 12 : marker.size ?? 8) * 0.005;
 
   // Check if marker is facing the camera
   useFrame(() => {
@@ -232,44 +227,35 @@ function Marker({
         <meshBasicMaterial color={hovered ? "#ffffff" : marker.color ?? "#ef4444"} />
       </mesh>
 
-      {/* Circular image at the top */}
+      {/* Pin head at the top: drawn in 3D (not drei's <Html>, whose extra React roots
+          crash the app when the globe unmounts under React 19) */}
       <group ref={imageGroupRef} position={topPosition}>
-        <Html
-          transform
-          center
-          sprite
-          distanceFactor={10}
-          style={{
-            pointerEvents: isVisible ? "auto" : "none",
-            opacity: isVisible ? 1 : 0,
-            transition: "opacity 0.15s ease-out",
-          }}
-        >
-          <div
-            className={cn(
-              "cursor-pointer overflow-hidden rounded-full bg-neutral-900 shadow-lg transition-transform duration-200",
-              hovered && "scale-125 shadow-xl ring-1 ring-white/50",
-            )}
-            style={{
-              width: `${marker.size ?? 8}px`,
-              height: `${marker.size ?? 8}px`,
-              ...(marker.src ? null : { background: marker.color ?? "#ef4444", boxShadow: "0 0 0 1px #fff" }),
-            }}
-            title={marker.label}
-            onMouseEnter={handlePointerEnter}
-            onMouseLeave={handlePointerLeave}
-            onClick={handleClick}
-          >
-            {marker.src && (
-              <img
-                src={marker.src}
-                alt={marker.label || "Marker"}
-                className="h-full w-full object-cover"
-                draggable={false}
-              />
-            )}
-          </div>
-        </Html>
+        <Billboard>
+          <group scale={hovered ? 1.25 : 1}>
+            <mesh
+              onPointerOver={(e) => {
+                e.stopPropagation();
+                document.body.style.cursor = "pointer";
+                handlePointerEnter();
+              }}
+              onPointerOut={() => {
+                document.body.style.cursor = "";
+                handlePointerLeave();
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleClick();
+              }}
+            >
+              <circleGeometry args={[headRadius * 1.3, 24]} />
+              <meshBasicMaterial color="#ffffff" />
+            </mesh>
+            <mesh position={[0, 0, 0.001]}>
+              <circleGeometry args={[headRadius, 24]} />
+              <meshBasicMaterial color={marker.src ? "#08482D" : marker.color ?? "#ef4444"} />
+            </mesh>
+          </group>
+        </Billboard>
       </group>
     </group>
   );
@@ -531,15 +517,8 @@ function Scene({ markers, config, onMarkerClick, onMarkerHover, focus, onFocusAr
 // ============================================================================
 
 function LoadingFallback() {
-  return (
-    <Html center>
-      <div className="flex shrink-0 flex-col items-center gap-3">
-        <span className="inline-block shrink-0 text-sm text-neutral-400">
-          Loading globe...
-        </span>
-      </div>
-    </Html>
-  );
+  // nothing inside the canvas while textures load (the page around it stays visible)
+  return null;
 }
 
 // ============================================================================

@@ -2,9 +2,11 @@
 // campus total from cleaned dumps.
 
 import { useEffect, useMemo, useState } from "react"
-import { ArrowLeft, Info, Leaf, Recycle, ScanLine, Trees, Truck } from "lucide-react"
+import { ArrowLeft, Info, Leaf, Recycle, ScanLine, Share2, Trees, Truck } from "lucide-react"
+import { shareCard } from "@/lib/shareCard"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { CountUp } from "@/components/motion"
 import type { DumpReport } from "@/dumps/types"
 import { binTone } from "@/lib/binColors"
 import { guide } from "@/lib/guide"
@@ -14,8 +16,16 @@ import { useApp } from "@/state/AppContext"
 const label = (id: string) => guide.categories.find((c) => c.id === id)?.label ?? "Not in the guide"
 
 export function ImpactScreen() {
-  const { navigate, history } = useApp()
+  const { navigate, history, toast } = useApp()
   const me = useMemo(() => impactOf(history), [history])
+  const share = async () => {
+    try {
+      const how = await shareCard({ kind: "impact", co2: formatKg(me.co2Kg), landfill: formatKg(me.kgDiverted), items: me.items, trees: treeText(me.treeDays) })
+      if (how === "downloaded") toast("Image saved. Share it from your downloads 📸", "info")
+    } catch {
+      toast("Couldn't make the image right now.", "error")
+    }
+  }
   const campus = useCampusCleanup()
   const maxWeek = Math.max(0.001, ...me.weeks.map((w) => w.co2Kg))
   const thisWeek = me.weeks[me.weeks.length - 1]
@@ -26,17 +36,22 @@ export function ImpactScreen() {
         <Button variant="secondary" size="icon" aria-label="Back to Home" onClick={() => navigate({ name: "home" })}>
           <ArrowLeft size={22} />
         </Button>
-        <div>
+        <div className="min-w-0 flex-1">
           <p className="text-[11px] font-bold tracking-[0.14em] text-green uppercase">Your impact</p>
           <h1 className="display text-3xl lg:text-[40px]">What sorting adds up to</h1>
         </div>
+        {me.items > 0 && (
+          <Button variant="secondary" size="sm" className="shrink-0" onClick={share}>
+            <Share2 size={16} /> Share
+          </Button>
+        )}
       </header>
 
       {/* headline numbers */}
       <section className="pill relative overflow-hidden rounded-[24px] p-6 lg:col-span-12 lg:p-8">
         <div className="grid gap-6 sm:grid-cols-3">
-          <BigStat icon={<Leaf size={18} />} value={`${formatKg(me.co2Kg)}`} unit="CO₂e saved" />
-          <BigStat icon={<Recycle size={18} />} value={formatKg(me.kgDiverted)} unit="kept out of landfill" />
+          <BigStat icon={<Leaf size={18} />} value={<CountUp value={me.co2Kg} format={formatKg} duration={1200} />} unit="CO₂e saved" />
+          <BigStat icon={<Recycle size={18} />} value={<CountUp value={me.kgDiverted} format={formatKg} duration={1200} />} unit="kept out of landfill" />
           <BigStat icon={<Trees size={18} />} value={me.items ? treeText(me.treeDays) : "—"} unit="the same as" small />
         </div>
         <p className="mt-5 text-sm text-white/75">
@@ -63,8 +78,8 @@ export function ImpactScreen() {
                 <div key={w.weekId} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1.5">
                   {w.co2Kg > 0 && <span className="text-[10px] font-semibold text-sub tabular-nums">{formatKg(w.co2Kg)}</span>}
                   <div
-                    className={i === me.weeks.length - 1 ? "w-full rounded-t-[8px] bg-green" : "w-full rounded-t-[8px] bg-mint"}
-                    style={{ height: `${Math.max(w.co2Kg ? 6 : 2, (w.co2Kg / maxWeek) * 100)}%` }}
+                    className={i === me.weeks.length - 1 ? "ww-grow-y w-full rounded-t-[8px] bg-green" : "ww-grow-y w-full rounded-t-[8px] bg-mint"}
+                    style={{ height: `${Math.max(w.co2Kg ? 6 : 2, (w.co2Kg / maxWeek) * 100)}%`, animationDelay: `${i * 60}ms` }}
                     title={`${w.weekId}: ${w.items} items`}
                   />
                   <span className="truncate text-[10px] text-sub">{w.label}</span>
@@ -89,7 +104,7 @@ export function ImpactScreen() {
                       </span>
                     </div>
                     <div className="h-2 overflow-hidden rounded-full" style={{ background: tone.soft }}>
-                      <div className="h-full rounded-full" style={{ width: `${(c.co2Kg / Math.max(0.001, me.co2Kg)) * 100}%`, background: tone.vivid }} />
+                      <div className="ww-grow-x h-full rounded-full" style={{ width: `${(c.co2Kg / Math.max(0.001, me.co2Kg)) * 100}%`, background: tone.vivid }} />
                     </div>
                   </li>
                 )
@@ -107,9 +122,9 @@ export function ImpactScreen() {
         </div>
         <p className="mb-4 text-sm text-sub">Illegal dumps reported by students and cleared by crews</p>
         <div className="grid grid-cols-3 gap-2">
-          <MiniStat value={campus ? String(campus.cleaned) : "…"} label="dumps cleared" />
-          <MiniStat value={campus ? formatKg(campus.kg) : "…"} label="waste recovered" />
-          <MiniStat value={campus ? formatKg(campus.kg * DUMP_CO2_PER_KG) : "…"} label="CO₂e saved" />
+          <MiniStat value={campus ? <CountUp value={campus.cleaned} /> : "…"} label="dumps cleared" />
+          <MiniStat value={campus ? <CountUp value={campus.kg} format={formatKg} /> : "…"} label="waste recovered" />
+          <MiniStat value={campus ? <CountUp value={campus.kg * DUMP_CO2_PER_KG} format={formatKg} /> : "…"} label="CO₂e saved" />
         </div>
         <Button variant="secondary" size="sm" className="mt-4" onClick={() => navigate({ name: "dumps" })}>
           See the dumps map
@@ -147,7 +162,7 @@ export function ImpactScreen() {
   )
 }
 
-function BigStat({ icon, value, unit, small }: { icon: React.ReactNode; value: string; unit: string; small?: boolean }) {
+function BigStat({ icon, value, unit, small }: { icon: React.ReactNode; value: React.ReactNode; unit: string; small?: boolean }) {
   return (
     <div>
       <div className="mb-2 grid h-9 w-9 place-items-center rounded-full bg-white/15 text-mint">{icon}</div>
@@ -160,7 +175,7 @@ function BigStat({ icon, value, unit, small }: { icon: React.ReactNode; value: s
   )
 }
 
-function MiniStat({ value, label }: { value: string; label: string }) {
+function MiniStat({ value, label }: { value: React.ReactNode; label: string }) {
   return (
     <div className="tile px-3 py-3 text-center">
       <div className="display text-xl leading-tight">{value}</div>

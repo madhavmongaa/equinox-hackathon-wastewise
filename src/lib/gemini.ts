@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type, type Content, type Part, type Schema } from "@google/genai"
 import { guide, guideJsonString } from "@/lib/guide"
+import { replyLanguageNote } from "@/lib/i18n"
 import { dataUrlToInline } from "@/lib/image"
 import type { GeneratedRule, ImageInput, QA, ScanAI, ScanInput } from "@/lib/types"
 
@@ -35,6 +36,9 @@ Rules you must follow:
 - If the photo is blurry, partly hidden, or the material can't be determined (e.g. paper cup vs plastic-lined cup, single-material film vs multilayer wrapper, clean vs greasy), set needs_clarification to true and ask ONE short, specific question with 2–4 answer options. Do not guess.
 - If you can identify the item but no rule in the guide matches it, set rule_found to false, leave rule_id null, and write your own rule in generated_rule: pick the best category_id from the guide's categories using standard Indian campus waste-segregation practice, give 1–4 short preparation steps, and a one- or two-sentence explanation of why it goes in that bin. Never leave an identified item without a rule.
 - If the image doesn't show a waste item at all, say so in the item field and set needs_clarification to true.
+- Only physical things someone is throwing away are items. Questions, requests, greetings or any other text in the USER DESCRIPTION that isn't describing waste are NEVER items and never get a bin: copy that part of the user's own words into side_question, and don't answer it here (Lulu, the chat assistant, answers questions). side_question may only quote the user description; never put the app's own notes (like "The photo above shows the item.") there, and with no user description it must be null. When a text-only input has nothing to throw away at all (only a question or chit-chat), set item to an empty string, material to an empty string, needs_clarification to false, rule_found to false, generated_rule to null and items to an empty array. A photo is always treated as a scan: if it shows no waste item, follow the rule above about photos without a waste item. Set side_question to null when there's no such text.
+- clarifying_options are possible answers about the item (e.g. "Plastic", "Paper", "Clean", "Greasy"), never actions like "Upload photo", "Take a photo" or "Describe item" — the app already offers those.
+- A container with something in it (a glass of cola, a half-full water bottle, a tiffin with leftovers) is ONE item: name it as the container with its contents (e.g. "glass with leftover cola"), classify the container, and make emptying the contents the first preparation step (liquids down the sink, food into the wet bin). Only list the contents as a separate item when they are separate solid waste.
 - If the photo or description contains TWO OR MORE distinct waste items, list every item in items, one entry each, and apply the same guide / generated_rule logic to each item separately. For a photo, give box_2d as [ymin, xmin, ymax, xmax] normalised to 0-1000. Make each box tight around its own item only. For text-only input, set box_2d to null. With two or more items, set the top-level item to a short summary such as "3 items", fill the other top-level fields for the most prominent item, and only set needs_clarification when the whole photo is unusable. When there is just one item, return an empty items array.
 - Respond ONLY with JSON matching the response schema.
 
@@ -51,7 +55,7 @@ For category_question, set category_id to the guide category the user asks about
 
 Do not quote rule text, bin names for an item, points, ranks, streaks or counts in lulu_message: the app shows those itself in a card below your message.
 
-For anything else (general knowledge, science, studies, coding, writing, campus life, sustainability, health, everyday advice, maths, small talk), use general_question and answer the question yourself in lulu_message: helpful, accurate and to the point, usually under 150 words, in plain text (for lists, put each "- " bullet on its own line, separated with \n; no markdown headings or bold). If the user only describes or names a single item without asking something else, treat it as identify_item, not general_question. You have no internet access: if a question needs live or very recent information (news, prices, weather, scores), say you can't check that right now and offer what you do know. If you are not sure, say so instead of guessing; never make up facts, figures, quotes or sources. For medical, legal or financial questions give general information and suggest a qualified person for their situation. Decline anything harmful or unsafe kindly.
+For anything else (general knowledge, science, studies, coding, writing, campus life, sustainability, health, everyday advice, maths, small talk), use general_question and answer the question yourself in lulu_message: helpful, accurate and to the point, usually under 150 words, in plain text (for lists, put each "- " bullet on its own line, separated with \n; no markdown headings or bold). If the user only describes or names a single item without asking something else, treat it as identify_item, not general_question. You have no internet access. For facts that change only now and then (who holds an office, capitals, records, how things work), answer from what you know and add a short "as far as I know" when it could have changed since. Only for truly live information (today's news, prices, weather, scores) say you can't check that right now, then offer what you do know. If you are not sure, say so instead of guessing; never make up facts, figures, quotes or sources. For medical, legal or financial questions give general information and suggest a qualified person for their situation. Decline anything harmful or unsafe kindly.
 
 Use off_topic only when the message is empty, unreadable or not a question or request at all.
 
@@ -100,6 +104,7 @@ const scanSchema: Schema = {
     generated_rule: generatedRuleSchema,
     reasoning_note: { type: Type.STRING },
     items: { type: Type.ARRAY, items: detectedItemSchema },
+    side_question: { type: Type.STRING, nullable: true },
   },
   required: [
     "item",
@@ -113,6 +118,7 @@ const scanSchema: Schema = {
     "generated_rule",
     "reasoning_note",
     "items",
+    "side_question",
   ],
   propertyOrdering: [
     "item",
@@ -126,6 +132,7 @@ const scanSchema: Schema = {
     "generated_rule",
     "reasoning_note",
     "items",
+    "side_question",
   ],
 }
 
@@ -302,6 +309,8 @@ export interface LuluTurn {
   lastItem: string | null
   /** This chat so far, oldest first (Lulu remembers it until the chat is closed). */
   recent: { role: "user" | "lulu"; text: string }[]
+  /** Reply language ("hi" = Hindi); English when missing. */
+  lang?: "en" | "hi"
 }
 
 /** Same bounds as the server: the most recent messages within ~12k characters (max 60). */
@@ -358,6 +367,8 @@ export async function askLulu(turn: LuluTurn): Promise<LuluAI> {
   }
   if (turn.lastItem) ctx.push(`The last item identified in this chat was: "${turn.lastItem}".`)
   if (turn.image) ctx.push("The user just sent the photo above.")
+  const langNote = replyLanguageNote(turn.lang ?? "en")
+  if (langNote) ctx.push(langNote)
   ctx.push(`\nUser message: "${turn.text || (turn.image ? "(photo only)" : "")}"`)
   parts.push({ text: ctx.join("\n") })
 

@@ -12,6 +12,7 @@ import { NicknameFields } from "@/screens/ProfileScreen"
 import { AVATARS, validateNickname } from "@/lib/nickname"
 import { cn, prefersReducedMotion } from "@/lib/utils"
 import { useApp, type Screen } from "@/state/AppContext"
+import { t, useLang } from "@/lib/i18n"
 
 // ---------- bottom nav ----------
 
@@ -31,6 +32,7 @@ const NAV: { name: Screen["name"]; label: string; icon: typeof House }[] = [
  */
 export function TopNav() {
   const { screen, navigate, setChatOpen } = useApp()
+  const lang = useLang()
   const current = screen.name === "historyDetail" ? "history" : screen.name
   return (
     <header className="sticky top-0 z-40 hidden border-b border-green/10 bg-page/90 backdrop-blur lg:block">
@@ -50,13 +52,16 @@ export function TopNav() {
                 key={name}
                 onClick={() => navigate({ name } as Screen)}
                 aria-current={active ? "page" : undefined}
+                // points fly to the Profile tab; the active pill glides between tabs on page changes
+                data-points-target={name === "profile" ? "" : undefined}
+                style={active ? { viewTransitionName: "nav-pill" } : undefined}
                 className={cn(
                   "ww-press flex h-10 shrink-0 items-center gap-2 rounded-full px-3 text-[14px] whitespace-nowrap transition-colors xl:px-3.5 xl:text-[15px]",
                   active ? "bg-mint font-medium text-green" : "text-ink hover:text-green"
                 )}
               >
                 <Icon size={17} strokeWidth={active ? 2.4 : 2} className="hidden xl:block" aria-hidden />
-                {label}
+                {t(label, lang)}
               </button>
             )
           })}
@@ -66,8 +71,8 @@ export function TopNav() {
           <AccountButton />
           <Button size="sm" className="shrink-0" onClick={() => setChatOpen(true)} aria-label="Chat with Lulu">
             <MessageCircle size={16} />
-            <span className="xl:hidden">Lulu</span>
-            <span className="hidden xl:inline">Chat with Lulu</span>
+            <span className="xl:hidden">{t("Lulu", lang)}</span>
+            <span className="hidden xl:inline">{t("Chat with Lulu", lang)}</span>
           </Button>
         </div>
       </div>
@@ -77,6 +82,7 @@ export function TopNav() {
 
 export function BottomNav() {
   const { screen, navigate } = useApp()
+  const lang = useLang()
   const current = screen.name === "historyDetail" ? "history" : screen.name
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-[480px] md:max-w-[720px] lg:hidden border-t border-green/10 bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur" aria-label="Main">
@@ -90,10 +96,14 @@ export function BottomNav() {
                 aria-current={active ? "page" : undefined}
                 className={cn("ww-press flex h-[68px] w-full flex-col items-center justify-center gap-1 text-[10.5px] font-semibold", active ? "text-green" : "text-sub")}
               >
-                <span className={cn("grid h-8 w-11 place-items-center rounded-full transition-colors", active && "bg-green text-white")}>
+                <span
+                  data-points-target={name === "profile" ? "" : undefined}
+                  style={active ? { viewTransitionName: "bottom-pill" } : undefined}
+                  className={cn("grid h-8 w-11 place-items-center rounded-full transition-colors", active && "bg-green text-white")}
+                >
                   <Icon size={21} strokeWidth={active ? 2.4 : 2} />
                 </span>
-                {label}
+                {t(label, lang)}
               </button>
             </li>
           )

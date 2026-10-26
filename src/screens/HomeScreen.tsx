@@ -1,4 +1,4 @@
-import { BookOpen, Camera, Leaf, MapPinned, Recycle, Sparkles } from "lucide-react"
+import { Camera, Leaf, MapPin, MapPinned, Recycle, Sparkles } from "lucide-react"
 import { Card, Note, SectionTitle } from "@/components/ui/card"
 import { CAMPUS, CampusGlobe } from "@/components/campus-globe"
 import { LuluMascot } from "@/components/ui/LuluMascot"
@@ -8,6 +8,7 @@ import { ThemeToggle } from "@/components/theme-toggle"
 import { AccountAvatar } from "@/components/account-card"
 import { ChallengesCard } from "@/components/challenges-card"
 import { ImpactCard } from "@/components/impact-card"
+import { InstallCard, OfflineScansCard, PickupCard } from "@/components/home-extras"
 import { HistoryRow, LeaderboardPreviewCard } from "@/components/widgets"
 import { useMemo, useState } from "react"
 import { uuid } from "@/lib/utils"
@@ -15,10 +16,12 @@ import { useMockRecentScans } from "@/lib/mockScansStore"
 import { SEVERITY_COLOR, SEVERITY_ORDER, useActiveDumps } from "@/dumps/severity"
 import type { GlobeFocus, GlobeMarker } from "@/components/ui/3d-globe"
 import { useApp } from "@/state/AppContext"
+import { t, useLang } from "@/lib/i18n"
 import { useCapture } from "@/state/capture"
 
 export function HomeScreen() {
   const { navigate, history } = useApp()
+  const lang = useLang()
   const capture = useCapture()
   const recent = useMockRecentScans(history)
 
@@ -58,14 +61,14 @@ export function HomeScreen() {
         style={{ animationDelay: "40ms" }}
       >
         <h2 className="display text-[44px] leading-[1.04] lg:text-[76px] lg:leading-[0.98]">
-          Let's sort it
+          {t("Let's sort it", lang)}
           <br />
           <span className="whitespace-nowrap" style={{ letterSpacing: "-0.022em" }}>
-            right 🌱
+            {t("right 🌱", lang)}
           </span>
         </h2>
         <p className="mx-auto mt-3 max-w-[300px] text-[15px] leading-relaxed text-sub lg:mx-0 lg:mt-5 lg:max-w-[440px] lg:text-lg">
-          Not sure which bin to use? Let AI help you decide.
+          {t("Not sure which bin to use? Let AI help you decide.", lang)}
         </p>
         <div className="relative mt-3 flex items-center justify-center lg:mt-7 lg:justify-start">
           <span className="bg-mint grid shrink-0 aspect-square place-items-center overflow-hidden rounded-full p-1">
@@ -73,7 +76,7 @@ export function HomeScreen() {
           </span>
           <div className="absolute top-0 right-[calc(50%+56px)] flex flex-col items-end lg:right-auto lg:left-[104px] lg:items-start">
             <Note tilt={-12} className="text-[24px]">
-              Ask Lulu!
+              {t("Ask Lulu!", lang)}
             </Note>
             <svg className="ww-draw mt-0.5 mr-[-18px] h-9 w-12 lg:mr-0 lg:ml-[-22px] lg:-scale-x-100" viewBox="0 0 48 36" aria-hidden="true">
               <path pathLength={1} d="M6 4 C10 20 22 28 40 26" fill="none" stroke="#08482D" strokeWidth={2.2} strokeLinecap="round" />
@@ -93,26 +96,30 @@ export function HomeScreen() {
 
       {/* 4. Quick links */}
       <div className="ww-fade-up grid grid-cols-2 gap-3 sm:grid-cols-4 lg:col-span-12 lg:gap-6" style={{ animationDelay: "120ms" }}>
-        <QuickLink icon={<Leaf size={20} />} label="Your impact" note="CO₂ saved" onClick={() => navigate({ name: "impact" })} />
-        <QuickLink icon={<BookOpen size={20} />} label="Waste guide" note="Every bin" onClick={() => navigate({ name: "guide" })} />
-        <QuickLink icon={<Recycle size={20} />} label="Kabadiwala" note="Sell your scrap" onClick={() => navigate({ name: "kabadiwala" })} />
-        <QuickLink icon={<Sparkles size={20} />} label="Cleaning" note="Services nearby" onClick={() => navigate({ name: "cleaning" })} />
+        <QuickLink icon={<Leaf size={20} />} label={t("Your impact", lang)} note={t("CO₂ saved", lang)} onClick={() => navigate({ name: "impact" })} />
+        <QuickLink icon={<MapPin size={20} />} label={t("Bin map", lang)} note={t("Nearest bin", lang)} onClick={() => navigate({ name: "bins" })} />
+        <QuickLink icon={<Recycle size={20} />} label={t("Kabadiwala", lang)} note={t("Sell your scrap", lang)} onClick={() => navigate({ name: "kabadiwala" })} />
+        <QuickLink icon={<Sparkles size={20} />} label={t("Cleaning", lang)} note={t("Services nearby", lang)} onClick={() => navigate({ name: "cleaning" })} />
       </div>
+
+      {/* offline scans waiting / install offer (only when there's something to say) */}
+      <OfflineScansCard className="lg:col-span-12" />
+      <InstallCard className="lg:col-span-12" />
 
       {/* 5. This week: challenges + your progress */}
       <ChallengesCard index={3} className="lg:col-span-7" />
       <ImpactCard index={4} className="lg:col-span-5" />
 
-      {/* 6. Recent scans + leaderboard */}
-      <Card index={5} className="lg:col-span-7">
+      {/* 6. Recent scans + pickups + leaderboard */}
+      <Card index={5} className="lg:col-span-4">
         <SectionTitle
           action={
             <button onClick={() => navigate({ name: "history" })} className="ww-press pill-glass min-h-10 px-4 text-sm font-semibold">
-              See all
+              {t("See all", lang)}
             </button>
           }
         >
-          Recent scans
+          {t("Recent scans", lang)}
         </SectionTitle>
         <div className="space-y-2.5">
           {recent.map((e) => (
@@ -120,7 +127,8 @@ export function HomeScreen() {
           ))}
         </div>
       </Card>
-      <LeaderboardPreviewCard index={6} className="lg:col-span-5" />
+      <PickupCard index={6} className="lg:col-span-4" />
+      <LeaderboardPreviewCard index={7} className="lg:col-span-4" />
 
       {/* 7. Globe: the campus plus every reported illegal dump */}
       <DumpGlobe />
@@ -135,7 +143,7 @@ export function HomeScreen() {
           <span className="grid h-7 w-7 place-items-center rounded-full bg-white/20 text-mint">
             <Camera size={18} strokeWidth={2.4} />
           </span>
-          <span className="text-[14px] font-bold tracking-tight">Scan Object</span>
+          <span className="text-[14px] font-bold tracking-tight">{t("Scan Object", lang)}</span>
         </button>
       </div>
     </div>

@@ -1,8 +1,10 @@
-import { CheckCircle2, Clock, MapPin, Truck } from "lucide-react"
+import { CheckCircle2, Clock, MapPin, Share2, Truck } from "lucide-react"
+import { shareCard } from "@/lib/shareCard"
 import { BeforeAfter } from "@/dumps/BeforeAfter"
 import type { DumpReport } from "@/dumps/types"
 import { relativeTime } from "@/lib/dates"
 import { formatKg } from "@/lib/impact"
+import { CountUp } from "@/components/motion"
 
 const cleanedAt = (d: DumpReport) => d.sweeperCrew?.cleanedAt ?? d.updatedAt
 
@@ -22,7 +24,7 @@ export function CleanupSummary({ dumps, onOpenQueue }: { dumps: DumpReport[]; on
         <Stat icon={<MapPin size={16} />} value={open} label="Waiting for a crew" tone="chip-alert" />
         <Stat icon={<Truck size={16} />} value={working} label="Crews working" />
         <Stat icon={<CheckCircle2 size={16} />} value={lastWeek} label="Cleaned in 7 days" />
-        <Stat icon={<Clock size={16} />} value={formatKg(kg)} label="Recovered so far" />
+        <Stat icon={<Clock size={16} />} value={<CountUp value={kg} format={formatKg} />} label="Recovered so far" />
       </div>
 
       {cleaned.length > 0 && (
@@ -37,7 +39,16 @@ export function CleanupSummary({ dumps, onOpenQueue }: { dumps: DumpReport[]; on
             {cleaned.slice(0, 6).map((d) => (
               <article key={d.id} className="tile w-[260px] shrink-0 snap-start overflow-hidden">
                 <BeforeAfter before={d.imageUrl} after={d.afterImageUrl} alt={d.title} className="h-36" />
-                <div className="p-3">
+                <div className="relative p-3 pr-12">
+                  <button
+                    onClick={() =>
+                      shareCard({ kind: "cleanup", title: d.title, kg: formatKg(d.sweeperCrew?.recycledKg ?? d.estimatedWeightKg), before: d.imageUrl, after: d.afterImageUrl }).catch(() => {})
+                    }
+                    aria-label={`Share the cleanup of ${d.title}`}
+                    className="ww-press absolute top-3 right-3 grid h-8 w-8 place-items-center rounded-full bg-card text-green shadow-soft"
+                  >
+                    <Share2 size={15} />
+                  </button>
                   <h3 className="line-clamp-1 text-sm font-semibold">{d.title}</h3>
                   <p className="mt-0.5 text-xs text-sub">
                     {formatKg(d.sweeperCrew?.recycledKg ?? d.estimatedWeightKg)} cleared · {relativeTime(cleanedAt(d))}
@@ -57,7 +68,7 @@ function Stat({ icon, value, label, tone }: { icon: React.ReactNode; value: Reac
     <div className="glass flex items-center gap-3 px-4 py-3">
       <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${tone ?? "bg-mint text-green"}`}>{icon}</span>
       <span className="min-w-0">
-        <span className="display block text-xl leading-tight tabular-nums">{value}</span>
+        <span className="display block text-xl leading-tight tabular-nums">{typeof value === "number" ? <CountUp value={value} /> : value}</span>
         <span className="block truncate text-xs text-sub">{label}</span>
       </span>
     </div>

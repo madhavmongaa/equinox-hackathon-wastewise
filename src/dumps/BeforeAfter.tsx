@@ -1,8 +1,9 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { useInView } from "@/components/motion"
 import { CheckCircle2 } from "lucide-react"
 import { DumpPhoto } from "@/dumps/DumpPhoto"
 import type { DumpStatus } from "@/dumps/types"
-import { cn } from "@/lib/utils"
+import { cn, prefersReducedMotion } from "@/lib/utils"
 
 /**
  * Before/after photo of a cleaned dump with a drag handle. Without an after photo it
@@ -10,6 +11,32 @@ import { cn } from "@/lib/utils"
  */
 export function BeforeAfter({ before, after, alt, className }: { before: string; after?: string; alt: string; className?: string }) {
   const [pos, setPos] = useState(50)
+  const [ref, inView] = useInView<HTMLDivElement>()
+  const [touched, setTouched] = useState(false)
+  // the first time it's seen, sweep from all "before" to all "after" and back to the middle
+  useEffect(() => {
+    if (!inView || !after || touched || prefersReducedMotion()) return
+    const start = performance.now()
+    let raf = 0
+    const frames: [number, number][] = [
+      [0, 50],
+      [450, 100],
+      [1500, 0],
+      [2200, 50],
+    ]
+    const tick = (t: number) => {
+      const e = t - start
+      const i = frames.findIndex(([at]) => at > e)
+      if (i === -1) return setPos(50)
+      const [t0, p0] = frames[i - 1]
+      const [t1, p1] = frames[i]
+      const k = (e - t0) / (t1 - t0)
+      setPos(p0 + (p1 - p0) * (0.5 - Math.cos(Math.PI * k) / 2))
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [inView, after, touched])
   if (!after) {
     return (
       <div className={cn("relative overflow-hidden bg-mint", className)}>
@@ -24,7 +51,7 @@ export function BeforeAfter({ before, after, alt, className }: { before: string;
     )
   }
   return (
-    <div className={cn("relative overflow-hidden bg-mint select-none", className)}>
+    <div ref={ref} className={cn("relative overflow-hidden bg-mint select-none", className)}>
       <DumpPhoto src={after} alt={`${alt}, after cleanup`} className="absolute inset-0 h-full w-full object-cover" />
       <div className="absolute inset-0" style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}>
         <DumpPhoto src={before} alt={`${alt}, before cleanup`} className="h-full w-full object-cover" />
@@ -41,7 +68,10 @@ export function BeforeAfter({ before, after, alt, className }: { before: string;
         min={0}
         max={100}
         value={pos}
-        onChange={(e) => setPos(Number(e.target.value))}
+        onChange={(e) => {
+          setTouched(true)
+          setPos(Number(e.target.value))
+        }}
         aria-label="Slide to compare before and after"
         className="absolute inset-0 h-full w-full cursor-ew-resize opacity-0"
       />

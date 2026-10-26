@@ -5,6 +5,7 @@ import { MicButton, useVoiceInput } from "@/components/voice"
 import { cn } from "@/lib/utils"
 import type { ImageInput } from "@/lib/types"
 import { useCapture } from "@/state/capture"
+import { t, useLang } from "@/lib/i18n"
 
 interface IdentifyCardProps {
   onImage: (img: ImageInput) => void
@@ -15,6 +16,7 @@ interface IdentifyCardProps {
 
 /** The heart of the app: 📷 Scan Item · 📁 Upload Photo · or describe it. */
 export function IdentifyCard({ onImage, onText, index, className }: IdentifyCardProps) {
+  const lang = useLang()
   const capture = useCapture()
   const [text, setText] = useState("")
   const mic = useVoiceInput({
@@ -33,19 +35,22 @@ export function IdentifyCard({ onImage, onText, index, className }: IdentifyCard
   return (
     <Card index={index} className={cn("lg:p-7", className)}>
       <div className="flex items-start justify-between gap-2">
-        <h2 className="display text-[28px] leading-tight">Identify your waste</h2>
+        <h2 className="display text-[28px] leading-tight">{t("Identify your waste", lang)}</h2>
         <Mark className="mt-1 shrink-0 text-xs">
           Guide first
         </Mark>
       </div>
-      <p className="mt-1 text-sm text-sub">Snap it, upload it, or tell Lulu what it is{mic.supported ? " (type or speak)" : ""}.</p>
+      <p className="mt-1 text-sm text-sub">
+        {t("Snap it, upload it, or tell Lulu what it is", lang)}
+        {mic.supported ? t(" (type or speak)", lang) : ""}.
+      </p>
       <div className="mt-4 grid grid-cols-2 gap-3">
-        <BigAction icon={<Camera size={26} />} label="Scan Item" hint="Open camera" onClick={() => pick("camera")} primary />
-        <BigAction icon={<FolderOpen size={26} />} label="Upload Photo" hint="JPG, PNG, WEBP, HEIC" onClick={() => pick("upload")} />
+        <BigAction icon={<Camera size={26} />} label={t("Scan Item", lang)} hint={t("Open camera", lang)} onClick={() => pick("camera")} primary />
+        <BigAction icon={<FolderOpen size={26} />} label={t("Upload Photo", lang)} hint="JPG, PNG, WEBP, HEIC" onClick={() => pick("upload")} />
       </div>
       <div className="my-4 flex items-center gap-3 text-[11px] font-bold tracking-[0.12em] text-sub">
         <span className="h-px flex-1 bg-green/12" />
-        OR DESCRIBE IT
+        {t("OR DESCRIBE IT", lang)}
         <span className="h-px flex-1 bg-green/12" />
       </div>
       <form
@@ -63,7 +68,7 @@ export function IdentifyCard({ onImage, onText, index, className }: IdentifyCard
           id="describe-item"
           value={text}
           onChange={(e) => setText(e.target.value)}
-          placeholder={mic.listening ? "Listening… say the item" : "e.g. a greasy pizza box…"}
+          placeholder={mic.listening ? t("Listening… say the item", lang) : t("e.g. a greasy pizza box…", lang)}
           className="field h-12 min-w-0 flex-1 px-5 text-[15px]"
         />
         <MicButton listening={mic.listening} onClick={mic.toggle} size={48} />

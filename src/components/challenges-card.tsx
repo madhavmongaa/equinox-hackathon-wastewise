@@ -1,18 +1,22 @@
 import { useMemo, useState } from "react"
-import { Check, Target } from "lucide-react"
+import { Check, Share2, Target } from "lucide-react"
+import { shareCard } from "@/lib/shareCard"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { useActivity } from "@/lib/activity"
+import { burstConfetti } from "@/lib/fx"
 import { loadClaimed, saveClaimed, weekEndsIn, weekProgress, type ChallengeProgress } from "@/lib/challenges"
 import { istWeekId } from "@/lib/dates"
 import { POINTS } from "@/lib/points"
 import { cn } from "@/lib/utils"
 import { useApp } from "@/state/AppContext"
+import { t, useLang } from "@/lib/i18n"
 
 /** This week's four challenges, with progress and a claim button when one is done. */
 export function ChallengesCard({ index, className }: { index?: number; className?: string }) {
-  const { history, uid, profile, openJoin, awardBonus } = useApp()
+  useLang()
+  const { history, uid, profile, openJoin, awardBonus, toast } = useApp()
   const activity = useActivity()
   const weekId = istWeekId()
   const [claimed, setClaimed] = useState(() => loadClaimed(uid, weekId))
@@ -32,6 +36,7 @@ export function ChallengesCard({ index, className }: { index?: number; className
     setClaiming(c.id)
     const ok = await awardBonus({ amount: POINTS.challenge, stats: { challengesCompleted: 1 } }, c.title)
     if (ok) {
+      burstConfetti()
       const next = [...claimed, c.id]
       saveClaimed(uid, next, weekId)
       setClaimed(next)
@@ -44,13 +49,31 @@ export function ChallengesCard({ index, className }: { index?: number; className
       <div className="mb-1 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Target size={18} className="text-green" />
-          <h2 className="display text-lg">Weekly challenges</h2>
+          <h2 className="display text-lg">{t("Weekly challenges")}</h2>
         </div>
         <span className="badge-mint text-xs">{weekEndsIn()}</span>
       </div>
-      <p className="mb-4 text-sm text-sub">
-        {finished} of {list.length} done · +{POINTS.challenge} points each
-      </p>
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <p className="text-sm text-sub">
+          {finished} of {list.length} done · +{POINTS.challenge} points each
+        </p>
+        {finished > 0 && (
+          <button
+            onClick={async () => {
+              const done = list.filter((c) => c.done)
+              try {
+                const how = await shareCard({ kind: "week", done: done.length, total: list.length, titles: done.map((c) => c.title), points: list.filter((c) => c.claimed).length * POINTS.challenge })
+                if (how === "downloaded") toast("Image saved. Share it from your downloads 📸", "info")
+              } catch {
+                toast("Couldn't make the image right now.", "error")
+              }
+            }}
+            className="ww-press inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-green hover:underline"
+          >
+            <Share2 size={14} /> Share my week
+          </button>
+        )}
+      </div>
       <ul className="grid gap-2.5 sm:grid-cols-2">
         {list.map((c) => (
           <li key={c.id} className={cn("tile flex items-center gap-3 px-3.5 py-3", c.claimed && "opacity-70")}>
@@ -66,7 +89,7 @@ export function ChallengesCard({ index, className }: { index?: number; className
               </div>
               <p className="truncate text-xs text-sub">{c.detail}</p>
               {c.claimed ? (
-                <p className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-green">
+                <p className="ww-pop mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-green">
                   <Check size={14} /> Claimed
                 </p>
               ) : c.done ? (

@@ -74,7 +74,7 @@ export function SegmentedPhoto({ src, parts, active, onSelect, className }: Prop
         <canvas
           ref={canvas}
           aria-hidden
-          className={cn("pointer-events-none absolute inset-0 h-full w-full transition-opacity duration-500", prep ? "opacity-100" : "opacity-0")}
+          className={cn("pointer-events-none absolute inset-0 h-full w-full transition-opacity duration-500", prep ? "ww-outline-in opacity-100" : "opacity-0")}
         />
       </div>
       {prep &&
@@ -105,7 +105,8 @@ export function SegmentedPhoto({ src, parts, active, onSelect, className }: Prop
                   dimmed ? "scale-95 opacity-45" : "opacity-100",
                   active === i && "scale-110"
                 )}
-                style={{ backgroundColor: p.tagColor, animationDelay: `${i * 70}ms` }}
+                // tags pop in one after another, after the outlines
+                style={{ backgroundColor: p.tagColor, animationDelay: `${250 + i * 220}ms` }}
               >
                 <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-white text-[11px] font-extrabold sm:h-6 sm:w-6" style={{ color: p.tagColor }}>
                   {p.n}

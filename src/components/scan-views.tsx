@@ -16,6 +16,7 @@ import { cropThumbnail } from "@/lib/segment"
 import { outcomeSpeech, resultSpeech } from "@/lib/voice"
 import type { Category, MultiPart, Outcome, Rule, RuleSnapshot, ScanAI } from "@/lib/types"
 import { cn } from "@/lib/utils"
+import { t } from "@/lib/i18n"
 
 // ---------- analysis ----------
 
@@ -43,7 +44,12 @@ export function AnalysisView({ thumbnail }: { thumbnail: string | null }) {
     <div className="ww-fade-up flex flex-col items-center px-2 pt-6 text-center" aria-live="polite">
       <span className="bg-mint grid aspect-square place-items-center overflow-hidden rounded-full p-2"><LuluMascot mood="thinking" size={120} /></span>
       <h2 className="display mt-4 text-4xl">Lulu is on it</h2>
-      {thumbnail && <Thumb src={thumbnail} size={64} className="mt-3 rounded-[14px]" />}
+      {thumbnail && (
+        <span className="relative mt-4 block overflow-hidden rounded-[18px] shadow-lift">
+          <Thumb src={thumbnail} size={120} className="rounded-[18px]" />
+          <span className="ww-scanline" aria-hidden />
+        </span>
+      )}
       <ol className="mt-6 w-full max-w-[300px] space-y-3 text-left">
         {ANALYSIS_STEPS.map((label, i) => {
           const done = i < step
@@ -75,13 +81,18 @@ interface ClarifyProps {
   disabled?: boolean
 }
 
+/** Options that are really actions ("Upload photo", "Describe it"): the card has its own buttons for those. */
+const PHOTO_ACTION = /\b(upload|take|send|share|snap|retake|add)\b.*\b(photo|picture|pic|image)\b|^(photo|picture)$/i
+const DESCRIBE_ACTION = /\b(describe|type|tell|write|explain)\b|^other$/i
+
 export function ClarificationCard({ ai, question, options, thumbnail, onAnswer, onRetakePhoto, compact, disabled }: ClarifyProps) {
   const [other, setOther] = useState("")
   const [showOther, setShowOther] = useState(false)
+  const answers = options.filter((o) => !PHOTO_ACTION.test(o.trim()) && !DESCRIBE_ACTION.test(o.trim()))
   return (
     <div className={cn("ww-fade-up glass", compact ? "p-4" : "p-5")}>
       <div className="flex items-start gap-3">
-        <span className="bg-mint grid shrink-0 aspect-square place-items-center overflow-hidden rounded-full p-1"><LuluMascot mood="confused" size={compact ? 44 : 64} /></span>
+        <span className="bg-mint grid shrink-0 aspect-square place-items-center overflow-hidden rounded-full p-1"><span className="ww-tilt block"><LuluMascot mood="confused" size={compact ? 44 : 64} /></span></span>
         <div className="min-w-0">
           <Mark className="text-xs">Quick question before I answer</Mark>
           <div className="mt-2 flex items-center gap-2">
@@ -94,7 +105,7 @@ export function ClarificationCard({ ai, question, options, thumbnail, onAnswer, 
       </div>
       <p className={cn("display mt-3", compact ? "text-xl" : "text-[26px] leading-tight")}>{question}</p>
       <div className="mt-3 flex flex-wrap gap-2">
-        {options.map((o) => (
+        {answers.map((o) => (
           <Chip key={o} disabled={disabled} onClick={() => onAnswer(o)}>
             {o}
           </Chip>
@@ -143,7 +154,7 @@ export function EvidenceBox({ ruleId, sourceText, compact }: { ruleId: string; s
         className="flex min-h-11 w-full items-center justify-between px-4 py-2 text-left text-sm font-bold text-ink"
         aria-expanded={open}
       >
-        Why this answer
+        {t("Why this answer")}
         <ChevronDown size={18} className={cn("transition-transform", open && "rotate-180")} />
       </button>
       {open && (
@@ -164,7 +175,7 @@ export function PrepSteps({ steps, compact }: { steps: string[]; compact?: boole
   if (!steps.length) return null
   return (
     <div>
-      <h3 className={cn("mb-2 text-ink", compact ? "text-sm" : "text-[15px]")}>How to prepare it</h3>
+      <h3 className={cn("mb-2 text-ink", compact ? "text-sm" : "text-[15px]")}>{t("How to prepare it")}</h3>
       <ol className="space-y-2">
         {steps.map((s, i) => (
           <li key={i} className="flex gap-3 text-sm">
@@ -223,7 +234,9 @@ export function ResultCard({ ai, rule, category, image, corrected, itemName, com
         </div>
         {!compact && (
           <span className="bg-mint grid shrink-0 aspect-square place-items-center overflow-hidden rounded-full p-1">
-            <LuluMascot mood="happy" size={60} />
+            <span className="ww-bounce block">
+              <LuluMascot mood="happy" size={60} />
+            </span>
           </span>
         )}
       </div>
@@ -299,11 +312,11 @@ export function ResultActions({
     <div className={cn("grid gap-2", compact ? "mt-1 grid-cols-2" : "mt-2 sm:grid-cols-2 lg:grid-cols-4")}>
       {onScanAgain && (
         <Button onClick={onScanAgain} disabled={busy} size={compact ? "sm" : "lg"} className="bg-green hover:bg-green-2 text-white">
-          <Camera size={18} /> Scan Again
+          <Camera size={18} /> {t("Scan Again")}
         </Button>
       )}
       <Button onClick={onGotIt} disabled={saved || busy} variant={onScanAgain ? "outline" : "primary"} className={compact && !onScanAgain ? "col-span-2" : ""} size={compact ? "sm" : "lg"}>
-        <CircleCheck size={18} /> {saved ? "Saved" : "Done"}
+        <CircleCheck size={18} /> {saved ? "Saved" : t("Done")}
       </Button>
       {onCorrect && !saved && (
         <Button variant="outline" onClick={onCorrect} disabled={busy} size={compact ? "sm" : "md"}>

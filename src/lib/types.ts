@@ -48,6 +48,8 @@ export interface ScanAI {
   reasoning_note: string
   /** One entry per item when the photo or description holds two or more items. */
   items?: DetectedItemAI[]
+  /** A question or other non-waste text in the input, passed on to Lulu (never answered by the scanner). */
+  side_question?: string | null
 }
 
 export interface DetectedItemAI {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { ArrowRight, X } from "lucide-react"
 import { SCRAP_KINDS, type ScrapFind } from "@/lib/scrap"
+import { estimateScrap, rupees } from "@/lib/scrapPrices"
 
 /** Floats over a scan result when it contains sellable scrap: "sell it, don't bin it". */
 export function ScrapPopup({ find, onFind }: { find: ScrapFind; onFind: () => void }) {
@@ -14,6 +15,7 @@ export function ScrapPopup({ find, onFind }: { find: ScrapFind; onFind: () => vo
 
   const kinds = SCRAP_KINDS.filter((k) => find.kinds.includes(k.id))
   const what = find.items.length === 1 ? find.items[0] : `${find.items.length} items`
+  const estimate = find.items.length === 1 ? estimateScrap(find.items[0], find.kinds) : null
   return (
     <div
       role="dialog"
@@ -31,11 +33,20 @@ export function ScrapPopup({ find, onFind }: { find: ScrapFind; onFind: () => vo
           <p className="mt-0.5 text-sm text-white/85">
             <span className="capitalize">{what}</span> {find.items.length === 1 ? "is" : "include"} {kinds.map((k) => k.label.toLowerCase()).join(" & ")} scrap. Kabadiwalas nearby buy it.
           </p>
+          {estimate && (
+            <p className="mt-2 inline-flex flex-wrap items-center gap-x-2 rounded-[12px] bg-white/12 px-3 py-1.5 text-sm">
+              {estimate.item && <span className="font-bold">About {rupees(estimate.item)} for this</span>}
+              <span className="text-white/80">
+                {estimate.material}: {rupees(estimate.perKg)}/kg
+              </span>
+            </p>
+          )}
+          {estimate && <p className="mt-1 text-[11px] text-white/65">Typical local rates; dealers pay more for a bigger pile.</p>}
           <button
             onClick={onFind}
             className="ww-press mt-3 inline-flex min-h-10 items-center gap-1.5 rounded-full bg-white px-4 text-sm font-bold text-[#08482D]"
           >
-            Find kabadiwalas <ArrowRight size={16} />
+            Book a pickup <ArrowRight size={16} />
           </button>
         </div>
         <button onClick={() => setOpen(false)} aria-label="Dismiss" className="ww-press -mt-1 -mr-1 grid h-9 w-9 shrink-0 place-items-center rounded-full hover:bg-white/15">
