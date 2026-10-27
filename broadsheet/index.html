@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>WasteWise · Sort smarter. Waste less.</title>
+<meta name="description" content="Snap or describe anything. Lulu finds every item in the picture, names its bin and tells you how to prepare it. For homes, NGOs, crews and municipal teams.">
+<meta property="og:title" content="WasteWise · Sort smarter. Waste less.">
+<meta property="og:description" content="Snap or describe anything. Lulu names the bin and tells you how to prepare it.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#F2F5EC">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="preload" href="fonts/newsreader-latin-standard-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="scrollcraft.css">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+
+<!-- Folio: the running head of the paper. It names the section you are in and jumps. -->
+<nav class="folio" aria-label="Sections">
+  <a class="folio__mark" href="#front" aria-label="WasteWise, front page">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><use href="#ww-logo"/></svg>
+  </a>
+  <p class="folio__now" aria-live="polite"><span class="folio__page" id="folioPage">A1</span> <span id="folioName">Front Page</span></p>
+  <a class="folio__cta" data-app="#scan" href="/app.html#scan">Try scan now</a>
+</nav>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="ww-logo" viewBox="0 0 32 32">
+      <path d="M16 4.5a11.5 11.5 0 1 0 11.2 8.8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
+      <path d="M27.8 8.4l-.5 5-4.8-1.4" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M10.5 21.5c0-6.4 4.3-10.2 10.8-10.2 0 6.4-3.9 10.7-10.8 10.2Z" fill="currentColor"/>
+      <path d="M12.2 19.9c2.2-2.6 4.3-4.3 7-5.9" stroke="var(--ww-logo-vein, #DAE7C7)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+    </symbol>
+    <pattern id="halftone" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <circle cx="3" cy="3" r="1.15" fill="#0E2619" opacity=".22"/>
+    </pattern>
+    <pattern id="halftone-dense" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <circle cx="2.5" cy="2.5" r="1.5" fill="#0E2619" opacity=".3"/>
+    </pattern>
+    <pattern id="hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(-35)">
+      <line x1="0" y1="0" x2="0" y2="5" stroke="#0E2619" stroke-width="1" opacity=".55"/>
+    </pattern>
+  </defs>
+</svg>
+
+<main id="top">
+
+<!-- ================================================================
+     A1 · FRONT PAGE  (pin, short: the layered planes)
+     ================================================================ -->
+<section id="front" class="ch ch--front" data-folio="A1|Front Page" data-sc-act="pin" data-sc-span="1.7">
+  <div data-sc-stage class="front">
+
+    <!-- far plane: yesterday's paper underneath -->
+    <div class="front__under" aria-hidden="true">
+      <div class="front__under-cols"><i></i><i></i><i></i><i></i><i></i></div>
+    </div>
+
+    <!-- mid plane: today's front page -->
+    <article class="sheet">
+      <header class="mast">
+        <p class="mast__edition">Sohna &amp; Gurugram edition</p>
+        <p class="mast__title">
+          <svg class="mast__logo" viewBox="0 0 32 32" aria-hidden="true"><use href="#ww-logo"/></svg>
+          <span>The WasteWise</span>
+        </p>
+        <p class="mast__date"><time id="todayDate">Today</time> <span class="mast__price">Free. No sign-up.</span></p>
+      </header>
+
+      <div class="front__grid">
+        <div class="front__lead">
+          <p class="kicker">Front page</p>
+          <h1 class="front__h1">Every item has a bin. Now you&rsquo;ll know which.</h1>
+          <p class="front__dek">Snap it or describe it. Lulu reads the picture, names the bin and tells you how to prepare it.</p>
+          <p class="front__cta"><a class="cta-line" data-app="#scan" href="/app.html#scan">Try scan now <span aria-hidden="true">&rarr;</span></a></p>
+        </div>
+
+        <figure class="front__photo">
+          <div class="front__frame" aria-hidden="true"></div>
+          <figcaption><strong>Lulu</strong>, our correspondent, on the fold. Ask her anything about your bin, in English or Hindi.</figcaption>
+        </figure>
+      </div>
+
+      <nav class="index" aria-label="Inside today">
+        <p class="index__h">Inside</p>
+        <a href="#letters"><span>A2</span> Dear Lulu</a>
+        <a href="#press"><span>A3</span> The Press</a>
+        <a href="#world"><span>A4</span> World Desk</a>
+        <a href="#games"><span>A5</span> Sports &amp; Games</a>
+        <a href="#classifieds"><span>A6</span> Classifieds</a>
+      </nav>
+    </article>
+
+    <!-- subject plane: Lulu climbs out of her photograph -->
+    <div class="front__lulu" aria-hidden="true">
+      <div class="front__lulu-shadow"></div>
+      <svg class="lulu" viewBox="0 0 200 240">
+        <defs><filter id="glow-a" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+        <g class="lulu-bob">
+          <g stroke="#8FB996" stroke-width="4" stroke-linecap="round" fill="none"><path class="lulu-steam" d="M68 36 q-6 -7 0 -14 q6 -7 0 -14"/><path class="lulu-steam lulu-steam-2" d="M132 36 q-6 -7 0 -14 q6 -7 0 -14"/></g>
+          <line x1="100" y1="44" x2="100" y2="30" stroke="#1F3D2B" stroke-width="3.5" stroke-linecap="round"/>
+          <circle cx="100" cy="25" r="6" fill="#7CF0B4" stroke="#1F3D2B" stroke-width="3"/>
+          <path d="M40 72 L160 72 L145 218 Q145 223 140 223 L60 223 Q55 223 55 218 Z" fill="#FFFDF7" stroke="#1F3D2B" stroke-width="3.5" stroke-linejoin="round"/>
+          <path d="M47 142 L153 142 L148.6 186 L51.4 186 Z" fill="#8FB996" stroke="#1F3D2B" stroke-width="3.5" stroke-linejoin="round"/>
+          <path d="M90 175 Q88 152 112 151 Q113 174 90 175 Z" fill="#1F3D2B"/>
+          <path d="M93 172 Q100 162 108 155" stroke="#8FB996" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <path d="M46 60 Q50 44 70 44 L130 44 Q150 44 154 60 Z" fill="#3C9A4E" stroke="#1F3D2B" stroke-width="3.5" stroke-linejoin="round"/>
+          <rect x="32" y="58" width="136" height="17" rx="8.5" fill="#2E7D4F" stroke="#1F3D2B" stroke-width="3.5"/>
+          <rect x="58" y="80" width="84" height="36" rx="18" fill="#1F3D2B"/>
+          <g fill="#7CF0B4" filter="url(#glow-a)" class="lulu-blink"><rect x="76" y="88" width="18" height="20" rx="6"/><rect x="106" y="88" width="18" height="20" rx="6"/></g>
+          <ellipse cx="68" cy="128" rx="7" ry="4" fill="#F4A6A0" opacity=".75"/><ellipse cx="132" cy="128" rx="7" ry="4" fill="#F4A6A0" opacity=".75"/>
+          <path d="M90 126 Q100 134 110 126" stroke="#1F3D2B" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+        </g>
+      </svg>
+    </div>
+
+    <!-- near plane: the next page sliding up, already printing -->
+    <div class="front__next" aria-hidden="true">
+      <span>Late edition</span>
+      <span>The Press, page A3</span>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================
+     A2 · DEAR LULU  (flow: the quiet before the press)
+     ================================================================ -->
+<section id="letters" class="ch ch--letters sc-section" data-folio="A2|Dear Lulu" data-sc-act="flow">
+  <div class="sc-wrap letters">
+    <header class="letters__head" data-sc-in>
+      <p class="kicker">Letters</p>
+      <h2 class="ch__title">Dear Lulu</h2>
+      <p class="letters__note">The questions everyone has at the bin, answered the way Lulu answers them: the bin, then what to do before it goes in.</p>
+      <svg class="lulu lulu--small" viewBox="0 0 200 240" aria-hidden="true">
+        <g>
+          <line x1="100" y1="44" x2="100" y2="30" stroke="#1F3D2B" stroke-width="3.5" stroke-linecap="round"/>
+          <circle cx="100" cy="25" r="6" fill="#7CF0B4" stroke="#1F3D2B" stroke-width="3"/>
+          <path d="M40 72 L160 72 L145 218 Q145 223 140 223 L60 223 Q55 223 55 218 Z" fill="#FFFDF7" stroke="#1F3D2B" stroke-width="3.5" stroke-linejoin="round"/>
+          <path d="M47 142 L153 142 L148.6 186 L51.4 186 Z" fill="#8FB996" stroke="#1F3D2B" stroke-width="3.5" stroke-linejoin="round"/>
+          <path d="M90 175 Q88 152 112 151 Q113 174 90 175 Z" fill="#1F3D2B"/>
+          <path d="M46 60 Q50 44 70 44 L130 44 Q150 44 154 60 Z" fill="#3C9A4E" stroke="#1F3D2B" stroke-width="3.5" stroke-linejoin="round"/>
+          <rect x="32" y="58" width="136" height="17" rx="8.5" fill="#2E7D4F" stroke="#1F3D2B" stroke-width="3.5"/>
+          <rect x="58" y="80" width="84" height="36" rx="18" fill="#1F3D2B"/>
+          <g fill="#7CF0B4"><rect x="82" y="86" width="14" height="16" rx="5"/><rect x="110" y="86" width="14" height="16" rx="5"/></g>
+          <path d="M90 126 Q100 134 110 126" stroke="#1F3D2B" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+          <g fill="#1F3D2B"><circle class="lulu-dot" cx="150" cy="30" r="4"/><circle class="lulu-dot" cx="163" cy="22" r="5" style="animation-delay:.2s"/><circle class="lulu-dot" cx="178" cy="12" r="6" style="animation-delay:.4s"/></g>
+        </g>
+      </svg>
+    </header>
+
+    <div class="letters__cols" data-sc-in data-sc-stagger="60">
+      <article class="letter">
+        <h3 class="letter__q">&ldquo;The pizza box has cheese stuck to it.&rdquo;</h3>
+        <p class="letter__a"><b>Two bins.</b> Tear off the clean lid for the blue bin. The greasy base goes in the green one with food waste.</p>
+      </article>
+      <article class="letter">
+        <h3 class="letter__q">&ldquo;A dead AA battery from the TV remote.&rdquo;</h3>
+        <p class="letter__a"><b>Red bin, hazardous.</b> Tape both ends and keep it well away from the dry bin.</p>
+      </article>
+      <article class="letter">
+        <h3 class="letter__q">&ldquo;My old phone charger stopped working.&rdquo;</h3>
+        <p class="letter__a"><b>E-waste drop box.</b> Never the dry bin. A kabadiwala may even pay you for the copper.</p>
+      </article>
+      <article class="letter">
+        <h3 class="letter__q">&ldquo;Used tea bags, every morning.&rdquo;</h3>
+        <p class="letter__a"><b>Green bin.</b> Pull out the staple first if yours has one.</p>
+      </article>
+      <article class="letter">
+        <h3 class="letter__q">&ldquo;Diapers and sanitary pads.&rdquo;</h3>
+        <p class="letter__a"><b>Grey bin, reject.</b> Wrap them in paper and mark the packet so whoever collects it knows.</p>
+      </article>
+      <article class="letter letter--lulu">
+        <h3 class="letter__q">&ldquo;I honestly don&rsquo;t know what this thing is.&rdquo;</h3>
+        <p class="letter__a"><b>Then I&rsquo;ll ask you one question first.</b> I won&rsquo;t guess a bin I&rsquo;m not sure of.</p>
+      </article>
+    </div>
+
+    <p class="letters__small">Ask by typing or by voice, in English or Hindi. Every answer is AI-generated, so check an unusual one against your local rules.</p>
+  </div>
+</section>
+
+<!-- ================================================================
+     A3 · THE PRESS  (pin, the peak: the scan prints itself)
+     ================================================================ -->
+<section id="press" class="ch ch--press" data-folio="A3|The Press" data-sc-act="pin" data-sc-span="3.7">
+  <div data-sc-stage class="press">
+
+    <div class="press__copy">
+      <div class="press__cue" data-sc-cue="0 0.36 0">
+        <p class="kicker kicker--dark">The Press</p>
+        <h2 class="press__h">One photo. Everything in it, sorted.</h2>
+        <p class="press__p">Snap a cluttered counter or a single wrapper. No sorting it out first.</p>
+      </div>
+      <div class="press__cue" data-sc-cue="0.33 0.68">
+        <h2 class="press__h">Every item, outlined in its bin&rsquo;s colour.</h2>
+        <p class="press__p">Lulu finds each thing in the frame and tags it: blue, green, red, grey or the e-waste box.</p>
+      </div>
+      <div class="press__cue" data-sc-cue="0.64 1.3 0.12 0.12">
+        <h2 class="press__h">Then how to prepare each one.</h2>
+        <p class="press__p">Up to four short steps per item, and a nudge when something is worth selling to a kabadiwala.</p>
+        <p><a class="cta-line cta-line--dark" data-app="#scan" href="/app.html#scan">Try scan now <span aria-hidden="true">&rarr;</span></a></p>
+      </div>
+    </div>
+
+    <div class="press__machine" aria-hidden="true">
+      <div class="roller"><div class="roller__ridges"></div><div class="roller__shade"></div></div>
+      <div class="slot">
+        <div class="print" id="print">
+          <div class="print__head"><span>Scan, 1 photo</span><span>4 items found</span></div>
+
+          <div class="print__photo">
+            <svg viewBox="0 0 800 520" class="tray">
+              <rect width="800" height="520" fill="#E9EEDF"/>
+              <rect width="800" height="520" fill="url(#halftone)"/>
+              <!-- counter edge -->
+              <path d="M0 438 L800 418 L800 520 L0 520 Z" fill="url(#halftone-dense)"/>
+              <path d="M0 438 L800 418" stroke="#0E2619" stroke-width="2" opacity=".6"/>
+
+              <!-- 1 PET bottle, lying down -->
+              <g class="obj">
+                <ellipse cx="250" cy="322" rx="190" ry="18" fill="url(#halftone-dense)"/>
+                <path d="M70 262 Q70 236 96 234 L330 226 Q352 225 362 240 L388 248 L420 248 Q428 248 428 256 L428 286 Q428 294 420 294 L388 294 L362 302 Q352 316 330 316 L96 314 Q70 312 70 288 Z" fill="#F7FAF2" stroke="#0E2619" stroke-width="3"/>
+                <path d="M120 236 L120 312 M170 234 L170 314" stroke="#0E2619" stroke-width="1.6" opacity=".5"/>
+                <rect x="196" y="234" width="96" height="80" fill="url(#hatch)"/>
+                <path d="M196 234 L196 314 M292 230 L292 316" stroke="#0E2619" stroke-width="2"/>
+                <rect x="428" y="244" width="26" height="54" rx="4" fill="#0E2619"/>
+                <path d="M86 252 Q150 246 330 242" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".9"/>
+              </g>
+              <!-- 2 banana peel -->
+              <g class="obj" transform="translate(16 40)">
+                <ellipse cx="610" cy="352" rx="120" ry="16" fill="url(#halftone-dense)"/>
+                <path d="M520 340 Q540 270 600 250 Q640 238 670 214 Q676 226 664 244 Q640 270 650 300 Q690 312 722 296 Q726 314 700 326 Q660 342 630 336 Q600 352 560 350 Q530 352 520 340 Z" fill="#F2F0C8" stroke="#0E2619" stroke-width="3" stroke-linejoin="round"/>
+                <path d="M552 326 Q590 290 640 262" stroke="#0E2619" stroke-width="1.6" fill="none" opacity=".55"/>
+                <path d="M600 330 Q640 320 690 308" stroke="#0E2619" stroke-width="1.6" fill="none" opacity=".55"/>
+                <path d="M666 216 L676 206" stroke="#0E2619" stroke-width="5" stroke-linecap="round"/>
+                <path d="M560 338 Q600 330 640 336" stroke="url(#hatch)" stroke-width="10" fill="none"/>
+              </g>
+              <!-- 3 AA battery -->
+              <g class="obj">
+                <ellipse cx="200" cy="404" rx="76" ry="9" fill="url(#halftone-dense)"/>
+                <rect x="126" y="372" width="140" height="30" rx="6" fill="#F7FAF2" stroke="#0E2619" stroke-width="3"/>
+                <rect x="126" y="372" width="44" height="30" rx="6" fill="#0E2619"/>
+                <rect x="266" y="380" width="10" height="14" rx="2" fill="#0E2619"/>
+                <path d="M196 380 L196 394 M189 387 L203 387" stroke="#0E2619" stroke-width="2.5"/>
+              </g>
+              <!-- 4 charger + cable -->
+              <g class="obj">
+                <ellipse cx="520" cy="146" rx="80" ry="12" fill="url(#halftone-dense)"/>
+                <rect x="470" y="70" width="104" height="70" rx="14" fill="#F7FAF2" stroke="#0E2619" stroke-width="3"/>
+                <rect x="470" y="70" width="104" height="70" rx="14" fill="url(#hatch)" opacity=".5"/>
+                <path d="M496 70 L496 48 M520 70 L520 48" stroke="#0E2619" stroke-width="7" stroke-linecap="round"/>
+                <path d="M574 106 Q636 102 640 140 Q644 176 600 184 Q574 190 560 176" stroke="#0E2619" stroke-width="5" fill="none" stroke-linecap="round"/>
+                <rect x="534" y="166" width="28" height="16" rx="4" fill="#0E2619" transform="rotate(20 548 174)"/>
+              </g>
+
+              <!-- scan line -->
+              <g class="scanline"><rect x="0" y="-6" width="800" height="6" fill="#7CF0B4"/><rect x="0" y="-60" width="800" height="54" fill="#7CF0B4" opacity=".14"/></g>
+
+              <!-- outlines, drawn in bin colours -->
+              <path class="outline" pathLength="1" stroke="#2F6FD6" d="M60 262 Q60 224 96 222 L330 214 Q358 213 370 230 L392 236 L424 236 Q440 236 440 252 L462 240 L466 302 L440 300 Q438 306 424 306 L392 306 L370 314 Q356 328 330 328 L96 326 Q60 324 60 288 Z"/>
+              <path class="outline" pathLength="1" stroke="#3C9A4E" transform="translate(16 40)" d="M506 346 Q526 262 596 238 Q636 226 668 196 Q690 206 676 246 Q654 272 660 290 Q694 298 730 280 Q744 316 704 338 Q662 356 630 348 Q598 364 556 362 Q512 362 506 346 Z"/>
+              <path class="outline" pathLength="1" stroke="#D2463C" d="M116 372 Q116 360 130 360 L282 362 Q290 362 290 374 L290 400 Q290 414 276 414 L130 414 Q116 414 116 402 Z"/>
+              <path class="outline" pathLength="1" stroke="#7A4FC9" d="M486 34 L552 34 Q586 34 588 74 L588 88 Q656 90 658 140 Q660 200 596 202 L540 200 Q520 198 522 180 L522 156 L486 156 Q458 156 458 128 L458 62 Q458 34 486 34 Z"/>
+            </svg>
+
+            <span class="tag" style="--x:13%;--y:33%;--c:#2F6FD6"><b>1</b> Dry <em>blue bin</em></span>
+            <span class="tag" style="--x:var(--x2, 74%);--y:82%;--c:#2B7A3D"><b>2</b> Wet <em>green bin</em></span>
+            <span class="tag" style="--x:11%;--y:84%;--c:#B8352C"><b>3</b> Hazardous <em>red bin</em></span>
+            <span class="tag" style="--x:var(--x4, 75%);--y:6%;--c:#6C43B8"><b>4</b> E-waste <em>drop box</em></span>
+          </div>
+
+          <div class="print__verdict">
+            <p class="verdict__h">Lulu found 4 items</p>
+            <ol class="verdict__list">
+              <li><b style="--c:#2F6FD6">1</b><span><strong>Plastic bottle</strong> Empty it, rinse it, crush it with the cap on.</span></li>
+              <li><b style="--c:#2B7A3D">2</b><span><strong>Banana peel</strong> Straight into the green bin. Compostable.</span></li>
+              <li><b style="--c:#B8352C">3</b><span><strong>AA battery</strong> Tape both ends. Keep apart from dry waste.</span></li>
+              <li><b style="--c:#6C43B8">4</b><span><strong>Phone charger</strong> E-waste box, or sell it with other scrap.</span></li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="press__aria sc-visually-hidden">Illustration: a photo of a counter with a plastic bottle, a banana peel, an AA battery and a phone charger prints off a roller. Each item is outlined in its bin colour: dry blue bin, wet green bin, hazardous red bin, and the e-waste drop box, with preparation steps for each.</p>
+  </div>
+</section>
+
+<!-- ================================================================
+     A4 · WORLD DESK  (pan: planet to street)
+     ================================================================ -->
+<section id="world" class="ch ch--world" data-folio="A4|World Desk" data-sc-act="pan" data-sc-span="3.1">
+  <div data-sc-stage class="world">
+    <div class="world__rail" data-sc-pan="0.04">
+
+      <div class="wpanel wpanel--lead">
+        <p class="kicker">World Desk</p>
+        <h2 class="ch__title">From the planet to your street.</h2>
+        <p class="world__p">See a dump on the roadside? Snap it. It lands on a map that crews and municipal teams work from, until someone clears it.</p>
+      </div>
+
+      <figure class="wpanel wpanel--globe">
+        <canvas id="globe" width="720" height="720" aria-hidden="true"></canvas>
+        <figcaption><b>Dump hotspots, on the globe.</b> Every report has a place. Ours start in Sohna.</figcaption>
+      </figure>
+
+      <figure class="wpanel wpanel--map">
+        <div class="map" id="map">
+          <svg viewBox="0 0 600 440" aria-hidden="true" class="map__streets">
+            <rect width="600" height="440" fill="#E7EDDC"/>
+            <path d="M-20 360 C120 330 200 300 300 230 S470 90 640 60" class="road road--major"/>
+            <path d="M40 -20 C80 120 120 220 200 300 S300 420 320 470" class="road"/>
+            <path d="M-20 160 C140 170 260 190 360 160 S520 120 640 140" class="road"/>
+            <path d="M380 -20 C390 100 400 200 440 300 S520 420 560 470" class="road"/>
+            <path d="M-20 250 C80 250 120 230 180 240" class="road road--minor"/>
+            <path d="M240 120 C300 100 330 60 340 -20" class="road road--minor"/>
+            <path d="M440 300 C500 290 560 300 640 330" class="road road--minor"/>
+            <path d="M0 420 C80 400 160 410 220 380" class="road road--minor"/>
+            <path class="route" id="route" pathLength="1" d="M70 380 C120 350 170 310 200 300 C240 285 280 250 300 230 C330 200 360 170 380 160 C410 150 430 210 440 300 C450 330 480 360 520 380"/>
+            <text x="330" y="262" class="map__label" transform="rotate(-36 330 262)">Sohna Road</text>
+            <text x="54" y="140" class="map__label">Badshahpur</text>
+            <text x="440" y="408" class="map__label">Sohna</text>
+          </svg>
+          <canvas id="heat" width="600" height="440" aria-hidden="true"></canvas>
+        </div>
+        <figcaption>
+          <b>Severity heatmap and the sweeper route.</b> Reports warm the map by severity; crews get a route through the worst of it. <span class="sample">Illustrative map, sample reports.</span>
+          <span class="legend" aria-label="Severity, low to critical"><span><i style="--c:#22C55E"></i>Low scatter</span> <span><i style="--c:#F5B400"></i>Medium</span> <span><i style="--c:#FF8A00"></i>High</span> <span><i style="--c:#FF4136"></i>Critical dump</span></span>
+        </figcaption>
+      </figure>
+
+      <div class="wpanel wpanel--ticket">
+        <div class="ticket">
+          <p class="ticket__k">Report, sample</p>
+          <p class="ticket__h">Curbside heap of plastic bottles</p>
+          <dl class="ticket__dl">
+            <div><dt>Severity</dt><dd><i style="--c:#FF8A00"></i>High</dd></div>
+            <div><dt>Area</dt><dd>Badshahpur</dd></div>
+            <div><dt>Department</dt><dd>Solid Waste Management</dd></div>
+          </dl>
+          <ol class="ticket__steps">
+            <li class="done">Reported by a resident, with a photo</li>
+            <li class="done">Sent to the municipal department</li>
+            <li class="now">In the crew&rsquo;s queue</li>
+            <li>Cleaned, with a before and after</li>
+          </ol>
+        </div>
+        <p class="world__p world__p--end">Reporters hear back when a crew is on it, and again when it&rsquo;s cleaned.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================
+     A5 · SPORTS & GAMES  (flow + iris reveal)
+     ================================================================ -->
+<section id="games" class="ch ch--games sc-section" data-folio="A5|Sports &amp; Games" data-sc-act="flow">
+  <div class="sc-wrap games">
+    <header class="games__head" data-sc-in>
+      <p class="kicker">Sports &amp; Games</p>
+      <h2 class="ch__title">Sort right, climb higher.</h2>
+    </header>
+
+    <figure class="game" data-sc-reveal="iris" data-sc-reveal-at="0.12 0.5">
+      <div class="game__stage" aria-hidden="true">
+        <div class="bins">
+          <span class="bin" style="--c:#2F6FD6"></span>
+          <span class="bin" style="--c:#3C9A4E"></span>
+          <span class="bin" style="--c:#D2463C"></span>
+          <span class="bin" style="--c:#6E6E6E"></span>
+          <span class="bin" style="--c:#7A4FC9"></span>
+        </div>
+        <span class="drop drop--1"></span><span class="drop drop--2"></span><span class="drop drop--3"></span>
+      </div>
+      <figcaption class="game__cap">
+        <p class="game__h">The WasteWise game, in 3D.</p>
+        <a class="cta-line cta-line--dark" id="gameLink" href="#games">Play the game <span aria-hidden="true">&rarr;</span></a>
+      </figcaption>
+    </figure>
+
+    <div class="games__cols" data-sc-in data-sc-stagger="70">
+      <div class="table">
+        <h3 class="table__h">The league, by points</h3>
+        <ol class="ladder">
+          <li><span>Seedling</span><span class="sc-nums">0</span></li>
+          <li><span>Sprout</span><span class="sc-nums">50</span></li>
+          <li><span>Sapling</span><span class="sc-nums">200</span></li>
+          <li><span>Tree</span><span class="sc-nums">500</span></li>
+          <li><span>Forest Guardian</span><span class="sc-nums">1,000</span></li>
+        </ol>
+      </div>
+      <div class="table">
+        <h3 class="table__h">How points are scored</h3>
+        <ul class="scores">
+          <li><span>An item sorted</span><span class="sc-nums">+10</span></li>
+          <li><span>First scan of the day</span><span class="sc-nums">+5</span></li>
+          <li><span>Answering Lulu&rsquo;s question</span><span class="sc-nums">+5</span></li>
+          <li><span>Correcting a result</span><span class="sc-nums">+5</span></li>
+          <li><span>Reporting a dump</span><span class="sc-nums">+10</span></li>
+          <li><span>A weekly challenge</span><span class="sc-nums">+25</span></li>
+          <li><span>A seven-day streak</span><span class="sc-nums">+25</span></li>
+        </ul>
+      </div>
+      <div class="table">
+        <h3 class="table__h">This week&rsquo;s fixtures</h3>
+        <p class="table__p">Four challenges a week, the same four for everyone. Like a dry-waste trio, a compost crew or a three-day habit.</p>
+        <p class="table__p">Every point also counts for your area team:</p>
+        <p class="teams">Sohna <span>·</span> Badshahpur <span>·</span> Golf Course Ext. Road <span>·</span> South City <span>·</span> Old Gurugram</p>
+        <p><a class="cta-line" data-app="#leaderboard" href="/app.html#leaderboard">See the leaderboard <span aria-hidden="true">&rarr;</span></a></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================
+     A6 · CLASSIFIEDS  (flow: dense, every service)
+     ================================================================ -->
+<section id="classifieds" class="ch ch--classifieds sc-section" data-folio="A6|Classifieds" data-sc-act="flow">
+  <div class="sc-wrap">
+    <header class="cls__head" data-sc-in>
+      <h2 class="ch__title">Classifieds</h2>
+      <p class="cls__sub">For homes, NGOs, crews and municipal teams.</p>
+    </header>
+
+    <div class="cls" data-sc-in data-sc-stagger="40">
+      <article class="ad ad--big">
+        <h3>Sell your scrap</h3>
+        <p>Kabadiwalas near you buy what you&rsquo;d otherwise bin. Scan an item and WasteWise shows nearby dealers and a rough price.</p>
+        <table class="rates">
+          <caption>Rough rates used in the app, per kg</caption>
+          <tr><th scope="row">Newspaper</th><td class="sc-nums">₹12&ndash;16</td></tr>
+          <tr><th scope="row">PET bottles</th><td class="sc-nums">₹12&ndash;18</td></tr>
+          <tr><th scope="row">Aluminium cans</th><td class="sc-nums">₹100&ndash;130</td></tr>
+          <tr><th scope="row">Copper</th><td class="sc-nums">₹600&ndash;720</td></tr>
+        </table>
+        <p class="ad__fine">Rates change with the market and the dealer.</p>
+        <a data-app="#kabadiwala" href="/app.html#kabadiwala">Find a dealer</a>
+      </article>
+
+      <article class="ad ad--invert">
+        <h3>Municipal teams &amp; organisers</h3>
+        <p>A community dashboard: reports by status, and open reports by area, heaviest first.</p>
+        <a data-app="#admin" href="/app.html#admin">Open the dashboard</a>
+      </article>
+
+      <article class="ad">
+        <h3>Report a dump</h3>
+        <p>Photo, place, severity. Points for you, a route for the crew.</p>
+        <a data-app="#dumps" href="/app.html#dumps">Report one</a>
+      </article>
+
+      <article class="ad">
+        <h3>Crews</h3>
+        <p>A sweeper queue. Log the kilos recovered when a site is cleared.</p>
+      </article>
+
+      <article class="ad">
+        <h3>To the department</h3>
+        <p>Each report carries a ticket and a drafted official email to the municipal department.</p>
+      </article>
+
+      <article class="ad">
+        <h3>Cleaners</h3>
+        <p>Cleaning services around Sohna and Gurugram, from deep cleans to pest control.</p>
+        <a data-app="#cleaning" href="/app.html#cleaning">Browse</a>
+      </article>
+
+      <article class="ad">
+        <h3>Bins near you</h3>
+        <p>A map of public bins, filtered by bin type.</p>
+        <a data-app="#bins" href="/app.html#bins">Open the map</a>
+      </article>
+
+      <article class="ad">
+        <h3>Running a ward?</h3>
+        <p>Pickup reminders by area. Add your collection times and residents are told when each kind of waste goes out.</p>
+      </article>
+
+      <article class="ad">
+        <h3>No signal, no problem</h3>
+        <p>Install it on your phone. Scans wait and send themselves when you&rsquo;re back online.</p>
+      </article>
+
+      <article class="ad">
+        <h3>Your impact</h3>
+        <p>CO<sub>2</sub>e saved each week, and where the savings come from.</p>
+        <a data-app="#impact" href="/app.html#impact">See yours</a>
+      </article>
+
+      <article class="ad">
+        <h3>Ask Lulu</h3>
+        <p>Any question about waste, typed or spoken, in English or Hindi. She remembers the whole chat.</p>
+        <a data-app="#lulu" href="/app.html#lulu">Ask her</a>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================
+     THE COUPON  (pin, last element: the scissors cut it free)
+     ================================================================ -->
+<section id="coupon" class="ch ch--coupon" data-folio="A7|Clip &amp; keep" data-sc-act="pin" data-sc-span="1.3">
+  <div data-sc-stage class="close">
+    <div class="close__inner">
+      <div class="coupon" id="couponCard">
+        <span class="coupon__edge" aria-hidden="true"></span>
+        <svg class="scissors" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.12 15.88M14.47 14.48 20 20M8.12 8.12 12 12"/></svg>
+        <p class="coupon__k">Clip &amp; keep</p>
+        <p class="coupon__h"><a data-app="#scan" href="/app.html#scan">Try scan now.</a></p>
+        <p class="coupon__p">No sign-up. Point your phone at anything you&rsquo;re about to throw away.</p>
+      </div>
+      <div class="close__lulu" aria-hidden="true">
+        <svg class="lulu" viewBox="0 0 200 240">
+          <defs><filter id="glow-c" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+          <ellipse cx="100" cy="231" rx="46" ry="5" fill="rgba(0,0,0,.18)"/>
+          <g class="lulu-bob">
+            <line x1="100" y1="44" x2="100" y2="30" stroke="#1F3D2B" stroke-width="3.5" stroke-linecap="round"/>
+            <circle cx="100" cy="25" r="6" fill="#7CF0B4" stroke="#1F3D2B" stroke-width="3"/>
+            <path d="M40 72 L160 72 L145 218 Q145 223 140 223 L60 223 Q55 223 55 218 Z" fill="#FFFDF7" stroke="#1F3D2B" stroke-width="3.5" stroke-linejoin="round"/>
+            <path d="M47 142 L153 142 L148.6 186 L51.4 186 Z" fill="#8FB996" stroke="#1F3D2B" stroke-width="3.5" stroke-linejoin="round"/>
+            <path d="M90 175 Q88 152 112 151 Q113 174 90 175 Z" fill="#1F3D2B"/>
+            <path d="M46 60 Q50 44 70 44 L130 44 Q150 44 154 60 Z" fill="#3C9A4E" stroke="#1F3D2B" stroke-width="3.5" stroke-linejoin="round"/>
+            <rect x="32" y="58" width="136" height="17" rx="8.5" fill="#2E7D4F" stroke="#1F3D2B" stroke-width="3.5"/>
+            <rect x="58" y="80" width="84" height="36" rx="18" fill="#1F3D2B"/>
+            <g stroke="#7CF0B4" stroke-width="6" stroke-linecap="round" fill="none" filter="url(#glow-c)"><path d="M76 103 Q85 88 94 103"/><path d="M106 103 Q115 88 124 103"/></g>
+            <ellipse cx="68" cy="128" rx="7" ry="4" fill="#F4A6A0" opacity=".75"/><ellipse cx="132" cy="128" rx="7" ry="4" fill="#F4A6A0" opacity=".75"/>
+            <path d="M86 125 Q100 139 114 125" stroke="#1F3D2B" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+            <g fill="#7CF0B4" stroke="#1F3D2B" stroke-width="2"><path d="M174 84 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3 Z"/><path d="M30 96 l2 5 5 2 -5 2 -2 5 -2 -5 -5 -2 5 -2 Z"/></g>
+          </g>
+        </svg>
+        <p class="close__sign">See you at the bin. <span>Lulu</span></p>
+      </div>
+    </div>
+
+    <footer class="colophon">
+      <p class="colophon__mark"><svg viewBox="0 0 32 32" aria-hidden="true"><use href="#ww-logo"/></svg> WasteWise. Sort smarter. Waste less.</p>
+      <nav class="colophon__links" aria-label="App">
+        <a data-app="" href="/app.html">Open the app</a>
+        <a data-app="#lulu" href="/app.html#lulu">Ask Lulu</a>
+        <a data-app="#bins" href="/app.html#bins">Bin map</a>
+        <a data-app="#leaderboard" href="/app.html#leaderboard">Leaderboard</a>
+      </nav>
+      <p class="colophon__fine">Answers are AI-generated. Bin colours follow Indian segregation practice.</p>
+    </footer>
+  </div>
+</section>
+
+</main>
+
+<script src="assets/land-dots.js"></script>
+<script src="scrollcraft.js"></script>
+<script src="site.js"></script>
+</body>
+</html>
